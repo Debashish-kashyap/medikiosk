@@ -1,0 +1,33 @@
+# MediKiosk — OPTIONAL: for the demo machine / one-command clone-and-run.
+# Day-to-day development uses the local flow in the README (hot reload); this compose
+# has NO source mounts, so you must rebuild to see code changes.
+# Run: `docker compose up --build`   Frontend: http://localhost:5173   API + docs: http://localhost:8000/docs
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MEDIKIOSK_CORS=*
+      # - MEDIKIOSK_LLM=openai      # uncomment to enable real LLM mapping
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+    depends_on:
+      - api
+
+  # --- Optional production infra (Data/Security lane). Uncomment when wiring. ---
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_PASSWORD: medikiosk
+  #     POSTGRES_DB: medikiosk
+  #   ports: ["5432:5432"]
+  # redis:
+  #   image: redis:7-alpine
+  #   ports: ["6379:6379"]

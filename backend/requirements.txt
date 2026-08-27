@@ -1,0 +1,12 @@
+# Core (needed to run the demo). Kept minimal so `pip install` is fast and reliable.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+python-multipart>=0.0.9
+
+# --- Optional / production. Uncomment as each lane wires the real component. ---
+# redis>=5.0            # session store with TTL (Data/Security lane)
+# faster-whisper>=1.0   # offline Indian-language ASR (AI-Speech lane)
+# openai>=1.40          # or any LLM client (AI-NLU lane) — keep output schema-constrained
+# fhir.resources>=7.1   # validate/serialize FHIR R4 (Data/Security lane)
+# pytesseract>=0.3.13   # printed-document OCR (AI-OCR lane)

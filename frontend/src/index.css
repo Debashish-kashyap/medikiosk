@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f4f7fb;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  /* Large base font for accessibility / kiosk viewing distance. */
+  font-size: 18px;
+  color: #0f172a;
+}
+
+/* Big, obvious tap target used across the kiosk. */
+.tap {
+  @apply rounded-2xl border-2 border-transparent bg-white shadow-sm px-6 py-5 text-lg font-semibold
+         text-slate-800 transition active:scale-[0.98] hover:border-kiosk-accent focus:outline-none
+         focus:ring-4 focus:ring-kiosk-accent/30;
+}
+.tap-selected {
+  @apply border-kiosk-primary bg-kiosk-primary/10 text-kiosk-primary;
+}
