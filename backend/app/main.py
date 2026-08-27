@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
+from .core.asr_engine import active_engine
 from .core.ontology_loader import load_ontology
 from .routers import asr, dialogue, documents, privacy, session, summary
 
@@ -41,4 +42,5 @@ def health() -> dict:
         "ontology_version": ont.version,
         "complaints": [o["value"] for o in ont.entry_node().get("options", [])],
         "llm_enabled": settings.USE_LLM,
+        "asr_engine": active_engine(),
     }

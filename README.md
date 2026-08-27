@@ -40,6 +40,10 @@ npm run dev        # http://localhost:5173
 It runs **with no API keys** — speech→field mapping uses an offline alias matcher, and
 ASR uses the browser’s built-in Web Speech API. Plug real models in later (see lanes).
 
+**Lane 4 (optional local Whisper):** `pip install faster-whisper`, install ffmpeg, set
+`MEDIKIOSK_ASR=whisper`. The kiosk still uses Web Speech unless you also set
+`VITE_USE_SERVER_ASR=1` (then mic audio is POSTed to `/api/asr`).
+
 ### Docker — optional (demo machine / one-command run)
 ```bash
 docker compose up --build          # Kiosk UI → :5173   API docs → :8000/docs
@@ -100,7 +104,7 @@ medikiosk/
 | POST | `/api/session/{id}/consent` | Record consent |
 | GET  | `/api/session/{id}/next` | Current question |
 | POST | `/api/session/{id}/answer` | Submit voice/touch answer → next question / confirm / red flags |
-| POST | `/api/asr` | Speech-to-text (stub; production seam for Whisper/Bhashini) |
+| POST | `/api/asr` | Speech-to-text (`mock_text` or audio). Stub by default; faster-whisper when `MEDIKIOSK_ASR=whisper` |
 | POST | `/api/session/{id}/documents` | Upload doc → stubbed OCR extraction (Module B) |
 | GET  | `/api/session/{id}/summary` | Structured physician summary (Module C) |
 | POST | `/api/session/{id}/submit` | Generate FHIR bundle; `?clear=true` wipes session |
@@ -124,11 +128,12 @@ Low-confidence voice → `{status:"needs_confirmation", ...}`; the kiosk confirm
 | Real now | Stubbed (production seam marked in code) |
 |---|---|
 | Deterministic dialogue engine + branching | Real LLM mapping (offline alias matcher stands in) |
-| Rule-based red-flag detection | faster-whisper / Bhashini ASR (`/api/asr`) |
-| Confidence gate + confirm/repeat loop | OCR + entity extraction (`documents.py` returns samples) |
-| Structured summary + editable HPI | Live ABDM sandbox push (bundle is generated, push mocked) |
-| Valid FHIR R4 bundle generation | Redis TTL store, Postgres, RBAC/audit (in-memory now) |
-| Voice via browser Web Speech API | Handwriting OCR (printed only; handwriting = roadmap) |
+| Rule-based red-flag detection | OCR + entity extraction (`documents.py` returns samples) |
+| Confidence gate + confirm/repeat loop | Live ABDM sandbox push (bundle is generated, push mocked) |
+| Structured summary + editable HPI | Redis TTL store, Postgres, RBAC/audit (in-memory now) |
+| Valid FHIR R4 bundle generation | Handwriting OCR (printed only; handwriting = roadmap) |
+| Voice via browser Web Speech API | Bhashini cloud ASR (optional; local faster-whisper is the Lane 4 seam) |
+| `POST /api/asr` + MediaRecorder fallback | faster-whisper until `MEDIKIOSK_ASR=whisper` + `pip install faster-whisper` |
 
 ---
 
