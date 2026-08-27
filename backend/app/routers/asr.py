@@ -1,14 +1,15 @@
 """Speech-to-text endpoint (Module A voice path).
 
-DEMO NOTE: the kiosk frontend uses the browser Web Speech API for live voice, so the
-demo works with zero setup. THIS endpoint is the production seam: the AI-Speech lane
-wires faster-whisper (offline) or Bhashini/AI4Bharat (Indian languages) here, adding
-noise suppression + voice-activity-detection before ASR, and returns a real confidence
-score that drives the kiosk's confirm/repeat logic.
+The kiosk frontend uses the browser Web Speech API by default (zero setup).
+This endpoint is the production seam: Lane 4 wires faster-whisper here.
+Set MEDIKIOSK_ASR=whisper (and pip install faster-whisper) to transcribe
+uploaded audio; mock_text still works so the pipeline is testable without a mic.
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, UploadFile
+
+from ..core.asr_engine import active_engine, transcribe_audio
 
 router = APIRouter(prefix="/api", tags=["asr"])
 
@@ -19,18 +20,23 @@ async def transcribe(
     mock_text: str | None = Form(default=None),
     language: str = Form(default="en"),
 ) -> dict:
-    # --- PRODUCTION (AI-Speech lane) --------------------------------------
-    # data = await audio.read()
-    # transcript, confidence = whisper_or_bhashini(data, language)
-    # return {"transcript": transcript, "confidence": confidence, "language": language}
-    # ----------------------------------------------------------------------
-    if mock_text is not None:                      # lets you test the pipeline without audio
-        return {"transcript": mock_text, "confidence": 0.9, "language": language}
-    if audio is not None:
-        await audio.read()
-    return {
-        "transcript": "",
-        "confidence": 0.0,
-        "language": language,
-        "note": "Stub ASR — wire faster-whisper / Bhashini here.",
-    }
+    # Lets you test the rest of the pipeline without a microphone.
+    if mock_text is not None:
+        return {
+            "transcript": mock_text,
+            "confidence": 0.9,
+            "language": language,
+            "engine": "mock",
+        }
+
+    if audio is None:
+        return {
+            "transcript": "",
+            "confidence": 0.0,
+            "language": language,
+            "engine": active_engine(),
+            "note": "No audio uploaded.",
+        }
+
+    data = await audio.read()
+    return transcribe_audio(data, language)

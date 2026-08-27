@@ -43,12 +43,21 @@ export const api = {
     return res.json();
   },
 
-  // Production ASR seam (the demo uses the browser Web Speech API instead).
+  // Production ASR seam. mock_text tests the pipeline; blob is real audio.
   async transcribe(text, language = "en") {
     const fd = new FormData();
     fd.append("mock_text", text);
     fd.append("language", language);
     const res = await fetch(`${BASE}/api/asr`, { method: "POST", body: fd });
+    return res.json();
+  },
+
+  async transcribeAudio(blob, language = "en") {
+    const fd = new FormData();
+    fd.append("audio", blob, "clip.webm");
+    fd.append("language", language);
+    const res = await fetch(`${BASE}/api/asr`, { method: "POST", body: fd });
+    if (!res.ok) throw new Error(`ASR failed: ${res.status}`);
     return res.json();
   },
 };

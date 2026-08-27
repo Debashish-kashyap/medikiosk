@@ -11,6 +11,8 @@ class Settings:
     CORS_ORIGINS = os.getenv("MEDIKIOSK_CORS", "*").split(",")
     # Whether a real LLM is wired in (see core/llm_mapper.py). Off by default.
     USE_LLM = os.getenv("MEDIKIOSK_LLM", "").lower() in {"1", "true", "openai", "on"}
+    # ASR: unset/auto uses faster-whisper if installed, else stub. "stub" forces stub.
+    ASR_MODE = os.getenv("MEDIKIOSK_ASR", "").strip().lower()
 
 
 settings = Settings()
