@@ -24,7 +24,8 @@ Full strategy, 4-day plan, feasibility, and the 21-judge-question playbook are i
 **Backend**
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
+python -m venv .venv
+.\.venv/Scripts/activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000            # http://localhost:8000/docs
 pytest -q          # optional: walks the chest-pain path, asserts the red flag fires
