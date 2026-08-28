@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..core import dialogue_engine, fhir_builder, summary_builder
+from ..core import abha_service, dialogue_engine, fhir_builder, summary_builder
 from ..models.schemas import ConsentRequest, CreateSessionRequest
 from ..store import audit_log, session_store
 
@@ -38,9 +38,18 @@ def give_consent(session_id: str, body: ConsentRequest) -> dict:
     session["consent"] = {
         "given": body.given,
         "ts": datetime.now(timezone.utc).isoformat(),
+        "abha_linked": False,
     }
+    if body.given and body.abha_id:
+        try:
+            abha_service.link_abha(session_id, body.abha_id, body.otp)
+            session["consent"]["abha_linked"] = True
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError:
+            raise HTTPException(status_code=502, detail="ABHA verification is temporarily unavailable.")
     session_store.save_session(session)
-    audit_log.record(session_id, actor="patient", action="consent", resource="session", purpose="consent")
+    audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="ABHA_LINK" if body.abha_id else "CONSENT", resource="session", success=True, purpose="consent")
     return {"session_id": session_id, "consent": session["consent"]}
 
 
@@ -63,16 +72,23 @@ def get_session(session_id: str) -> dict:
 def submit(session_id: str, clear: bool = Query(False, description="Delete session data after submit (privacy)")) -> dict:
     session = _require(session_id)
     summary = summary_builder.build_summary(session)
-    abha = (session.get("consent") or {}).get("abha_id")
+    abha = (abha_service.get_abha_link(session_id) or {}).get("abha_id")
     bundle = fhir_builder.build_bundle(session, summary, abha_id=abha)
-    audit_log.record(session_id, actor="clinician", action="export", resource="fhir_bundle", purpose="care")
+    pushed = False
+    if (session.get("permissions") or {}).get("abdm_share"):
+        try:
+            pushed = fhir_builder.push_to_abdm_sandbox(bundle)
+        except RuntimeError:
+            audit_log.record(session_id, actor="system", role="system", action="FHIR_EXPORT", resource="fhir_bundle", success=False, purpose="abdm_share")
+            raise HTTPException(status_code=502, detail="ABDM sandbox export is temporarily unavailable.")
+    audit_log.record(session_id, actor="clinician", role="physician", action="FHIR_EXPORT", resource="fhir_bundle", success=True, purpose="care")
 
     result = {
         "session_id": session_id,
         "summary": summary,
         "fhir_bundle": bundle,
-        "pushed_to_abdm": False,   # mocked: real ABDM sandbox push is a production step
-        "note": "FHIR bundle generated. ABDM sandbox push is stubbed for the demo.",
+        "pushed_to_abdm": pushed,
+        "note": "FHIR bundle generated. ABDM sandbox export occurs only after explicit sharing consent and sandbox configuration.",
         "cleared": False,
     }
     if clear:

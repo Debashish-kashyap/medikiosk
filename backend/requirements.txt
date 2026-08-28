@@ -3,6 +3,9 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 pydantic>=2.6
 python-multipart>=0.0.9
+cryptography>=42.0
+# API test client dependency used by FastAPI/Starlette TestClient.
+httpx>=0.27
 
 # --- Optional / production. Uncomment as each lane wires the real component. ---
 # redis>=5.0            # session store with TTL (Data/Security lane)

@@ -28,7 +28,7 @@ python -m venv .venv
 .\.venv/Scripts/activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000            # http://localhost:8000/docs
-pytest -q          # optional: walks the chest-pain path, asserts the red flag fires
+python -m pytest -q # optional: walks the clinical, security, and API checks
 ```
 **Frontend**
 ```bash
@@ -108,6 +108,16 @@ medikiosk/
 | POST | `/api/session/{id}/documents` | Upload doc → stubbed OCR extraction (Module B) |
 | GET  | `/api/session/{id}/summary` | Structured physician summary (Module C) |
 | POST | `/api/session/{id}/submit` | Generate FHIR bundle; `?clear=true` wipes session |
+| POST | `/api/records` | Protected FHIR export for a patient session |
+| GET | `/api/records/{id}` | Protected patient/physician summary view |
+| POST | `/api/abha/link` | ABHA linkage: mock by default; sandbox adapter only when authorised/configured |
+| DELETE | `/api/abha/{id}` | Remove a mock ABHA link |
+| GET | `/api/audit-logs` | Admin-only technical audit events |
+
+Protected record endpoints use `X-User-Id` and `X-Role` (`patient`, `physician`, or
+`admin`) as a **demo identity seam**. Replace these headers with verified identity/JWT
+claims before deployment. Copy `.env.example` to `.env` and set a real
+`MEDIKIOSK_ENCRYPTION_KEY` before encrypting persisted PHI; `.env` is gitignored.
 
 **Answer payload:** `{ node_id, touch_value? , text?, confidence?, confirmed? }`
 Low-confidence voice → `{status:"needs_confirmation", ...}`; the kiosk confirms or offers taps.
@@ -129,8 +139,8 @@ Low-confidence voice → `{status:"needs_confirmation", ...}`; the kiosk confirm
 |---|---|
 | Deterministic dialogue engine + branching | Real LLM mapping (offline alias matcher stands in) |
 | Rule-based red-flag detection | OCR + entity extraction (`documents.py` returns samples) |
-| Confidence gate + confirm/repeat loop | Live ABDM sandbox push (bundle is generated, push mocked) |
-| Structured summary + editable HPI | Redis TTL store, Postgres, RBAC/audit (in-memory now) |
+| Confidence gate + confirm/repeat loop | Live ABDM sandbox export requires sanctioned endpoint, credentials, and sharing consent; otherwise no request is made |
+| Structured summary + editable HPI, consent-gated audit trail/RBAC seams | Redis TTL, durable encrypted storage, and WORM audit persistence |
 | Valid FHIR R4 bundle generation | Handwriting OCR (printed only; handwriting = roadmap) |
 | Voice via browser Web Speech API | Bhashini cloud ASR (optional; local faster-whisper is the Lane 4 seam) |
 | `POST /api/asr` + MediaRecorder fallback | faster-whisper until `MEDIKIOSK_ASR=whisper` + `pip install faster-whisper` |

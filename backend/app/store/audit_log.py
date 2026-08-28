@@ -18,7 +18,7 @@ from typing import Any
 _LOG: dict[str, list[dict[str, Any]]] = {}
 
 GENESIS = "0" * 64
-_BODY_KEYS = ("seq", "ts", "actor", "action", "resource", "purpose")
+_BODY_KEYS = ("seq", "ts", "actor", "role", "action", "resource", "purpose", "success", "request_id")
 
 
 def _hash(prev_hash: str, body: dict[str, Any]) -> str:
@@ -32,6 +32,9 @@ def record(
     action: str,
     resource: str,
     purpose: str = "care",
+    role: str = "system",
+    success: bool = True,
+    request_id: str = "",
 ) -> dict[str, Any]:
     """Append one audit entry for a session and return it.
 
@@ -46,9 +49,12 @@ def record(
         "seq": len(chain),
         "ts": datetime.now(timezone.utc).isoformat(),
         "actor": actor,
+        "role": role,
         "action": action,
         "resource": resource,
         "purpose": purpose,
+        "success": success,
+        "request_id": request_id,
     }
     entry = {**body, "prev_hash": prev_hash, "hash": _hash(prev_hash, body)}
     chain.append(entry)
@@ -58,6 +64,11 @@ def record(
 def get_log(session_id: str) -> list[dict[str, Any]]:
     """Full audit trail for a session (oldest first)."""
     return list(_LOG.get(session_id, []))
+
+
+def all_logs() -> list[dict[str, Any]]:
+    """All technical audit entries, for the admin-only audit endpoint."""
+    return [entry for chain in _LOG.values() for entry in chain]
 
 
 def verify_chain(session_id: str) -> bool:
