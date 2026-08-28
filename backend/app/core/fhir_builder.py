@@ -14,12 +14,24 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+import httpx
+
+from ..config import settings
+
 
 def _uuid_ref() -> str:
     return f"urn:uuid:{uuid.uuid4()}"
 
 
-def build_bundle(session: dict, summary: dict, abha_id: str | None = None) -> dict:
+def build_fhir_bundle(patient_data: dict) -> dict:
+    """Build a FHIR R4-style collection from already-captured kiosk data only.
+
+    ``patient_data`` may contain ``session``, ``summary`` and ``abha_id``. This
+    deliberately does not manufacture demographics, diagnoses, or ABHA IDs.
+    """
+    session = patient_data.get("session", patient_data)
+    summary = patient_data.get("summary", {})
+    abha_id = patient_data.get("abha_id")
     now = datetime.now(timezone.utc).isoformat()
     answers = session.get("answers", {})
 
@@ -29,14 +41,10 @@ def build_bundle(session: dict, summary: dict, abha_id: str | None = None) -> di
         "resource": {
             "resourceType": "Patient",
             "id": patient_ref.split(":")[-1],
-            "identifier": [
-                {
-                    "system": "https://healthid.abdm.gov.in",
-                    "value": abha_id or "DEMO-ABHA-0000-0000",
-                }
-            ],
         },
     }
+    if abha_id:
+        patient["resource"]["identifier"] = [{"system": "https://healthid.abdm.gov.in", "value": abha_id}]
 
     entries = [patient]
 
@@ -121,6 +129,33 @@ def build_bundle(session: dict, summary: dict, abha_id: str | None = None) -> di
             }
         )
 
+    # Existing OCR metadata can be represented without asserting clinical validity.
+    for document in session.get("documents", []):
+        doc_ref = _uuid_ref()
+        entries.append({
+            "fullUrl": doc_ref,
+            "resource": {
+                "resourceType": "DocumentReference", "id": doc_ref.split(":")[-1],
+                "status": "current", "subject": {"reference": patient_ref},
+                "type": {"text": str(document.get("type", "clinical document"))},
+                "date": document.get("date") or now,
+                "description": "OCR-extracted document metadata (verification required)",
+            },
+        })
+        investigations = document.get("entities", {}).get("investigations", [])
+        if investigations:
+            report_ref = _uuid_ref()
+            entries.append({
+                "fullUrl": report_ref,
+                "resource": {
+                    "resourceType": "DiagnosticReport", "id": report_ref.split(":")[-1],
+                    "status": "preliminary", "subject": {"reference": patient_ref},
+                    "effectiveDateTime": document.get("date") or now,
+                    "code": {"text": "OCR-extracted investigations (verification required)"},
+                    "conclusion": "; ".join(str(item.get("name", "")) for item in investigations),
+                },
+            })
+
     # Composition ties it into a physician-readable clinical summary document.
     composition_ref = _uuid_ref()
     entries.insert(
@@ -152,3 +187,31 @@ def build_bundle(session: dict, summary: dict, abha_id: str | None = None) -> di
         "meta": {"profile": ["https://nrces.in/ndhm/fhir/r4/StructureDefinition/DocumentBundle"]},
         "entry": entries,
     }
+
+
+def build_bundle(session: dict, summary: dict, abha_id: str | None = None) -> dict:
+    """Backward-compatible entry point used by the current session routers."""
+    return build_fhir_bundle({"session": session, "summary": summary, "abha_id": abha_id})
+
+
+def push_to_abdm_sandbox(bundle: dict) -> bool:
+    """Send a generated bundle only to a configured ABDM sandbox endpoint.
+
+    This is deliberately disabled unless sandbox mode, a destination URL, and
+    onboarding credentials are configured. It never runs merely by building FHIR.
+    """
+    if settings.ABHA_MODE != "sandbox" or not settings.ABDM_SANDBOX_FHIR_URL:
+        return False
+    if not settings.ABDM_CLIENT_ID or not settings.ABDM_CLIENT_SECRET:
+        raise RuntimeError("ABDM sandbox FHIR export is not configured.")
+    try:
+        response = httpx.post(
+            settings.ABDM_SANDBOX_FHIR_URL,
+            json=bundle,
+            headers={"X-Client-Id": settings.ABDM_CLIENT_ID, "X-Client-Secret": settings.ABDM_CLIENT_SECRET},
+            timeout=15.0,
+        )
+        response.raise_for_status()
+        return True
+    except httpx.HTTPError as exc:
+        raise RuntimeError("ABDM sandbox FHIR export failed.") from exc

@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .core.asr_engine import active_engine
 from .core.ontology_loader import load_ontology
-from .routers import asr, dialogue, documents, privacy, session, summary
+from .routers import asr, dialogue, documents, privacy, security, session, summary
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
@@ -30,6 +30,7 @@ app.include_router(asr.router)
 app.include_router(documents.router)
 app.include_router(summary.router)
 app.include_router(privacy.router)
+app.include_router(security.router)
 
 
 @app.get("/health")

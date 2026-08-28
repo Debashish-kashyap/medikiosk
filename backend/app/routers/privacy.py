@@ -10,10 +10,11 @@ promoting these stubs to real (DB-backed trail, RBAC, ABHA auth, breach alerts).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..models.schemas import PermissionsRequest
 from ..store import audit_log, session_store
+from ..security.rbac import require_permission
 
 router = APIRouter(prefix="/api/session", tags=["privacy"])
 
@@ -30,9 +31,11 @@ def _humanize(entry: dict) -> dict:
     return {
         "when": entry["ts"],
         "who": entry["actor"],
+        "role": entry.get("role", "unknown"),
         "did": entry["action"],
         "to": entry["resource"],
         "why": entry["purpose"],
+        "result": "success" if entry.get("success", True) else "denied/failed",
     }
 
 
@@ -52,7 +55,7 @@ def access_log(session_id: str) -> dict:
 
 
 @router.get("/{session_id}/audit")
-def audit_trail(session_id: str) -> dict:
+def audit_trail(session_id: str, _actor: dict = Depends(require_permission("view_audit_logs"))) -> dict:
     """Full technical audit trail (RBAC-gated to staff in production)."""
     _require(session_id)
     return {

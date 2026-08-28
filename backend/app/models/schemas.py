@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class CreateSessionRequest(BaseModel):
@@ -17,6 +17,14 @@ class CreateSessionRequest(BaseModel):
 
 class ConsentRequest(BaseModel):
     given: bool = True
+    abha_id: str | None = Field(default=None, min_length=1, description="Optional ABHA number/address for linkage")
+    otp: str | None = Field(default=None, min_length=4, repr=False, description="One-time verification code; never persisted")
+
+    @model_validator(mode="after")
+    def require_otp_for_abha_link(self):
+        if self.given and self.abha_id and not self.otp:
+            raise ValueError("OTP is required when requesting ABHA linkage.")
+        return self
 
 
 class AnswerRequest(BaseModel):

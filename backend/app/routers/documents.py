@@ -11,7 +11,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from ..store import session_store
+from ..store import audit_log, session_store
 
 router = APIRouter(prefix="/api/session", tags=["documents"])
 
@@ -62,6 +62,9 @@ def _extract(filename: str) -> dict:
 @router.post("/{session_id}/documents")
 async def upload_document(session_id: str, file: UploadFile = File(...)) -> dict:
     session = _require(session_id)
+    if not session.get("consent", {}).get("given"):
+        audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="ACCESS_DENIED", resource="document", success=False, purpose="consent")
+        raise HTTPException(status_code=403, detail="Consent is required before collecting documents.")
     await file.read()   # PRODUCTION: pass bytes to OCR instead of discarding
     doc = _extract(file.filename or "")
     doc["doc_id"] = uuid.uuid4().hex
@@ -69,6 +72,7 @@ async def upload_document(session_id: str, file: UploadFile = File(...)) -> dict
     doc["note"] = "Stub OCR extraction — wire Tesseract/cloud OCR + entity model here."
     session["documents"].append(doc)
     session_store.save_session(session)
+    audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="CREATE_PATIENT_RECORD", resource=doc["doc_id"], success=True, purpose="care")
     return doc
 
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from ..core import dialogue_engine
 from ..models.schemas import AnswerRequest
-from ..store import session_store
+from ..store import audit_log, session_store
 
 router = APIRouter(prefix="/api/session", tags=["dialogue"])
 
@@ -30,6 +30,9 @@ def next_question(session_id: str) -> dict:
 @router.post("/{session_id}/answer")
 def answer(session_id: str, body: AnswerRequest) -> dict:
     session = _require(session_id)
+    if not session.get("consent", {}).get("given"):
+        audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="ACCESS_DENIED", resource="questionnaire", success=False, purpose="consent")
+        raise HTTPException(status_code=403, detail="Consent is required before collecting health information.")
     result = dialogue_engine.process_answer(
         session,
         node_id=body.node_id,
@@ -40,5 +43,8 @@ def answer(session_id: str, body: AnswerRequest) -> dict:
     )
     session_store.save_session(session)
     if result.get("status") == "error":
+        audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="UPDATE_PATIENT_RECORD", resource=body.node_id, success=False, purpose="care")
         raise HTTPException(status_code=400, detail=result["message"])
+    action = "ANSWER_REQUIRES_CONFIRMATION" if result.get("status") == "needs_confirmation" else "UPDATE_PATIENT_RECORD"
+    audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action=action, resource=body.node_id, success=True, purpose="care")
     return result
