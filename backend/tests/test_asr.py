@@ -2,7 +2,7 @@
 from types import SimpleNamespace
 
 from app.core import asr_engine
-from app.core.asr_engine import _confidence_from_segments, transcribe_audio
+from app.core.asr_engine import _confidence_from_segments, _is_hallucination, transcribe_audio
 
 
 def test_empty_audio_returns_contract():
@@ -45,3 +45,37 @@ def test_health_reports_asr_engine():
     body = client.get("/health").json()
     assert body["asr_engine"] in {"stub", "faster-whisper"}
     assert asr_engine.active_engine() == body["asr_engine"]
+
+
+def test_is_hallucination():
+    assert _is_hallucination("...") is True
+    assert _is_hallucination("Thank you.") is True
+    assert _is_hallucination("Subtitles by Amara.org") is True
+    assert _is_hallucination("  ♪♪  ") is True
+    assert _is_hallucination("hello") is False
+    assert _is_hallucination("seene mein dard hai") is False
+
+
+def test_suffix_sniff_webm_and_wav():
+    from app.core.asr_engine import suffix_for_bytes
+
+    assert suffix_for_bytes(b"\x1a\x45\xdf\xa3rest", "application/octet-stream") == ".webm"
+    assert suffix_for_bytes(b"RIFFxxxxWAVEfmt ", None) == ".wav"
+    assert suffix_for_bytes(b"OggS........", None) == ".ogg"
+
+
+def test_asr_status_endpoint():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    res = client.get("/api/asr/status")
+    assert res.status_code == 200
+    body = res.json()
+    assert "engine" in body
+    assert "available" in body
+    if body["engine"] == "faster-whisper":
+        assert body["available"] is True
+        assert "model" in body
+    elif body["engine"] == "stub":
+        assert body["available"] is False

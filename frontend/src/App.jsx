@@ -18,6 +18,7 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [autoVoice, setAutoVoice] = useState(false);
 
   function chooseLanguage(code) {
     setLang(code);
@@ -42,6 +43,9 @@ export default function App() {
 
   async function submitAnswer(partial) {
     if (!question) return;
+    if (partial.text) {
+      setAutoVoice(true);
+    }
     setBusy(true);
     setError(null);
     try {
@@ -116,6 +120,8 @@ export default function App() {
             lang={lang}
             question={question}
             busy={busy}
+            autoVoice={autoVoice}
+            onVoiceToggle={(val) => setAutoVoice(val)}
             pendingConfirm={pendingConfirm}
             onSubmit={submitAnswer}
             onConfirmYes={confirmYes}

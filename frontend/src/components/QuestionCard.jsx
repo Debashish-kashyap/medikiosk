@@ -9,7 +9,7 @@ const ICONS = {
   no: "🚫", check: "✅", snow: "❄️", spots: "🔴", drop: "💧", gauge: "📈", gland: "🦋", warning: "⚠️",
 };
 
-export default function QuestionCard({ lang, question, busy, pendingConfirm, onSubmit, onConfirmYes, onConfirmNo }) {
+export default function QuestionCard({ lang, question, busy, autoVoice, onVoiceToggle, pendingConfirm, onSubmit, onConfirmYes, onConfirmNo }) {
   const [multi, setMulti] = useState([]);
 
   // Reset multi-select state whenever the question changes.
@@ -58,6 +58,9 @@ export default function QuestionCard({ lang, question, busy, pendingConfirm, onS
         <div className="mb-4">
           <VoiceButton
             lang={lang}
+            questionId={question.node_id}
+            autoVoice={autoVoice}
+            onAutoVoiceToggle={onVoiceToggle}
             disabled={busy}
             onResult={(text, confidence) => onSubmit({ text, confidence })}
           />

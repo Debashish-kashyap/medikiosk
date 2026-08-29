@@ -43,6 +43,60 @@ def active_engine() -> str:
     return "stub"
 
 
+def engine_status() -> dict:
+    """Return status dict for /api/asr/status endpoint."""
+    engine = active_engine()
+    return {
+        "engine": engine,
+        "available": engine != "stub",
+        "model": WHISPER_MODEL if engine == "faster-whisper" else None,
+    }
+
+
+def suffix_for_content_type(content_type: str | None) -> str:
+    """Determine file suffix from content type for temp file."""
+    if content_type:
+        ct = content_type.split(";")[0].strip().lower()
+        if "webm" in ct:
+            return ".webm"
+        if "ogg" in ct:
+            return ".ogg"
+        if "wav" in ct:
+            return ".wav"
+        if "mp4" in ct or "m4a" in ct:
+            return ".m4a"
+    return ".webm"
+
+
+def suffix_for_bytes(data: bytes, content_type: str | None = None) -> str:
+    """Detect file extension by inspecting magic bytes or content type."""
+    if data.startswith(b"\x1a\x45\xdf\xa3"):
+        return ".webm"
+    if data.startswith(b"RIFF") and len(data) >= 12 and data[8:12] == b"WAVE":
+        return ".wav"
+    if data.startswith(b"OggS"):
+        return ".ogg"
+    if data.startswith(b"\xff\xfb") or data.startswith(b"\xff\xf3") or data.startswith(b"ID3"):
+        return ".mp3"
+    return suffix_for_content_type(content_type)
+
+
+def _is_hallucination(text: str) -> bool:
+    """Detect typical Whisper hallucinations on silent/noisy audio."""
+    t = text.strip().lower()
+    if not t or len(t) <= 3 and set(t).issubset({".", " ", "-", "♪"}):
+        return True
+    hallucination_phrases = {
+        "thank you.", "thank you very much.", "thanks for watching!",
+        "subtitles by amara.org", "subtitles by the amara.org community",
+        "you", "bye.", "subscribe", "please subscribe",
+    }
+    if t in hallucination_phrases or all(c in "♪♩ ♫" for c in t):
+        return True
+    return False
+
+
+
 def _should_run_whisper() -> bool:
     if ASR_MODE in {"stub", "off", "0", "false"}:
         return False
@@ -73,7 +127,19 @@ def _confidence_from_segments(segments: list[Any]) -> float:
     return round(sum(scores) / len(scores), 3)
 
 
-def transcribe_audio(data: bytes, language: str = "en") -> dict:
+def warmup() -> None:
+    """Pre-load the Whisper model on startup to avoid timeout on first request."""
+    if not _should_run_whisper():
+        return
+    try:
+        _whisper_model()
+        logger.info("Whisper model warmed up successfully")
+    except Exception:
+        logger.exception("Whisper model warmup failed")
+
+
+
+def transcribe_audio(data: bytes, language: str = "en", content_type: str | None = None) -> dict:
     """Transcribe raw audio bytes. Always returns the ASR contract dict."""
     lang = _WHISPER_LANG.get((language or "en").split("-")[0], "en")
     if not data:
@@ -95,15 +161,17 @@ def transcribe_audio(data: bytes, language: str = "en") -> dict:
             tmp.write(data)
             tmp_path = tmp.name
         model = _whisper_model()
-        segments_iter, _info = model.transcribe(tmp_path, language=lang, vad_filter=True)
+        segments_iter, info = model.transcribe(tmp_path, language=lang, vad_filter=True)
         segments = list(segments_iter)
         transcript = " ".join((s.text or "").strip() for s in segments).strip()
         confidence = _confidence_from_segments(segments) if transcript else 0.0
+        duration_ms = int(info.duration * 1000) if info else len(data) // 32  # fallback estimate
         return {
             "transcript": transcript,
             "confidence": confidence,
             "language": language,
             "engine": "faster-whisper",
+            "duration_ms": duration_ms,
         }
     except Exception:
         logger.exception("faster-whisper transcription failed")

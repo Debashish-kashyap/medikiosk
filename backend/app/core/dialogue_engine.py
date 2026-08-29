@@ -89,6 +89,8 @@ def process_answer(
     elif text is not None:
         interp = llm_mapper.interpret(node, text, lang)
         value, conf, method = interp["value"], interp["confidence"], interp["method"]
+        if confidence is not None:
+            conf = min(conf, confidence)
         source = "voice"
     else:
         return {"status": "error", "message": "No answer provided."}

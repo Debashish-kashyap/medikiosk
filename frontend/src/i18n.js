@@ -30,6 +30,13 @@ export const UI = {
     submitted: "Record generated",
     abdmNote: "FHIR bundle ready. ABDM push is mocked for this demo.",
     voiceUnsupported: "Voice input isn't available in this browser — please tap an option.",
+    micPermissionDenied: "Microphone permission was denied — please allow access and try again.",
+    micNotFound: "No microphone found — please connect one or tap an option.",
+    recordingTimeout: "Recording stopped — maximum time reached.",
+    asrProcessing: "Processing your speech…",
+    asrError: "Could not understand — please try again or tap an option.",
+    speechNetworkError:
+      "Browser speech needs internet (Chrome/Edge). Allow the microphone, or tap an option.",
   },
   hi: {
     appTitle: "मेडीकियोस्क",
@@ -59,6 +66,13 @@ export const UI = {
     submitted: "रिकॉर्ड तैयार",
     abdmNote: "FHIR बंडल तैयार। इस डेमो में ABDM पुश मॉक है।",
     voiceUnsupported: "इस ब्राउज़र में वॉइस उपलब्ध नहीं — कृपया विकल्प चुनें।",
+    micPermissionDenied: "माइक्रोफ़ोन अनुमति नहीं मिली — कृपया अनुमति दें और पुनः प्रयास करें।",
+    micNotFound: "माइक्रोफ़ोन नहीं मिला — कृपया एक कनेक्ट करें या विकल्प चुनें।",
+    recordingTimeout: "रिकॉर्डिंग रुक गई — अधिकतम समय पूरा।",
+    asrProcessing: "आपकी बात समझ रहे हैं…",
+    asrError: "समझ नहीं आया — कृपया फिर बोलें या विकल्प चुनें।",
+    speechNetworkError:
+      "ब्राउज़र वॉइस के लिए इंटरनेट चाहिए (Chrome/Edge)। माइक अनुमति दें, या विकल्प चुनें।",
   },
 };
 

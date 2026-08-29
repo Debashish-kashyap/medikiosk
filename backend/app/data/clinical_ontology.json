@@ -17,12 +17,12 @@
       "prompt": { "en": "What brings you in today?", "hi": "आज आप किस समस्या के लिए आए हैं?" },
       "help": { "en": "You can speak or tap an option.", "hi": "आप बोल सकते हैं या विकल्प चुन सकते हैं।" },
       "options": [
-        { "value": "chest_pain", "label": { "en": "Chest pain", "hi": "सीने में दर्द" }, "icon": "heart", "aliases": ["chest", "seene", "seene mein dard", "heart pain", "chhati"], "next": "cp_onset" },
-        { "value": "fever", "label": { "en": "Fever", "hi": "बुखार" }, "icon": "thermometer", "aliases": ["fever", "bukhar", "temperature", "hot"], "next": "fever_onset" },
-        { "value": "cough", "label": { "en": "Cough / cold", "hi": "खांसी / जुकाम" }, "icon": "lungs", "aliases": ["cough", "khansi", "cold", "jukham"], "next": "past_history" },
-        { "value": "headache", "label": { "en": "Headache", "hi": "सिरदर्द" }, "icon": "brain", "aliases": ["headache", "sir dard", "sardard"], "next": "past_history" },
-        { "value": "abdominal_pain", "label": { "en": "Stomach pain", "hi": "पेट दर्द" }, "icon": "stomach", "aliases": ["stomach", "pet dard", "abdomen", "belly"], "next": "past_history" },
-        { "value": "other", "label": { "en": "Something else", "hi": "कुछ और" }, "icon": "more", "aliases": ["other", "kuch aur"], "next": "past_history" }
+        { "value": "chest_pain", "label": { "en": "Chest pain", "hi": "सीने में दर्द" }, "icon": "heart", "aliases": ["chest", "chest pain", "seene", "seene mein dard", "seena dard", "heart pain", "heart attack", "heart problem", "chhati", "chhati dard", "chest pressure", "heavy chest", "tightness"], "next": "cp_onset" },
+        { "value": "fever", "label": { "en": "Fever", "hi": "बुखार" }, "icon": "thermometer", "aliases": ["fever", "bukhar", "temperature", "hot", "garam", "tap", "thand"], "next": "fever_onset" },
+        { "value": "cough", "label": { "en": "Cough / cold", "hi": "खांसी / जुकाम" }, "icon": "lungs", "aliases": ["cough", "khansi", "cold", "jukham", "sardi", "nazla", "sore throat", "gala kharab"], "next": "past_history" },
+        { "value": "headache", "label": { "en": "Headache", "hi": "सिरदर्द" }, "icon": "brain", "aliases": ["headache", "sir dard", "sardard", "head", "sir", "migraine", "chakkar", "dizziness"], "next": "past_history" },
+        { "value": "abdominal_pain", "label": { "en": "Stomach pain", "hi": "पेट दर्द" }, "icon": "stomach", "aliases": ["stomach", "stomach pain", "pet dard", "pet", "abdomen", "belly", "gas", "acidity", "vomit", "vomiting", "loose motion", "dast"], "next": "past_history" },
+        { "value": "other", "label": { "en": "Something else", "hi": "कुछ और" }, "icon": "more", "aliases": ["other", "kuch aur", "something else", "general", "body pain", "badan dard"], "next": "past_history" }
       ]
     },
 
@@ -34,10 +34,10 @@
       "allow_voice": true,
       "prompt": { "en": "When did the chest pain start?", "hi": "सीने में दर्द कब शुरू हुआ?" },
       "options": [
-        { "value": "under_1h", "label": { "en": "Less than 1 hour ago", "hi": "1 घंटे से कम" }, "icon": "clock", "aliases": ["just now", "abhi", "minutes"] },
-        { "value": "today", "label": { "en": "Earlier today", "hi": "आज" }, "icon": "clock", "aliases": ["today", "aaj"] },
-        { "value": "few_days", "label": { "en": "A few days", "hi": "कुछ दिन" }, "icon": "calendar", "aliases": ["days", "din"] },
-        { "value": "over_week", "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा" }, "icon": "calendar", "aliases": ["week", "hafta", "long"] }
+        { "value": "under_1h", "label": { "en": "Less than 1 hour ago", "hi": "1 घंटे से कम" }, "icon": "clock", "aliases": ["just now", "abhi", "minutes", "1 hour", "one hour", "less than an hour", "thodi der", "recently", "just started", "abhi shuru hua", "half hour", "aadha ghanta"] },
+        { "value": "today", "label": { "en": "Earlier today", "hi": "आज" }, "icon": "clock", "aliases": ["today", "aaj", "morning", "subah", "subah se", "afternoon", "dopahar", "evening", "shaam", "hours", "ghante", "2 hours", "few hours", "do ghante", "kal", "yesterday", "night", "raat"] },
+        { "value": "few_days", "label": { "en": "A few days", "hi": "कुछ दिन" }, "icon": "calendar", "aliases": ["days", "din", "few days", "kuch din", "2 days", "3 days", "do din", "teen din", "parso"] },
+        { "value": "over_week", "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा" }, "icon": "calendar", "aliases": ["week", "weeks", "hafta", "long", "over a week", "mahina", "month", "months", "purana", "bahut din"] }
       ],
       "next": "cp_site"
     },
@@ -50,10 +50,10 @@
       "allow_voice": true,
       "prompt": { "en": "Where is the pain?", "hi": "दर्द कहाँ है?" },
       "options": [
-        { "value": "center", "label": { "en": "Center of chest", "hi": "सीने के बीच" }, "icon": "target", "aliases": ["center", "middle", "beech"] },
-        { "value": "left", "label": { "en": "Left side", "hi": "बाईं ओर" }, "icon": "arrow-left", "aliases": ["left", "baayen"] },
-        { "value": "right", "label": { "en": "Right side", "hi": "दाईं ओर" }, "icon": "arrow-right", "aliases": ["right", "daayen"] },
-        { "value": "upper_abdomen", "label": { "en": "Upper stomach", "hi": "ऊपरी पेट" }, "icon": "stomach", "aliases": ["stomach", "pet", "upper abdomen"] }
+        { "value": "center", "label": { "en": "Center of chest", "hi": "सीने के बीच" }, "icon": "target", "aliases": ["center", "middle", "beech", "beech mein", "center of chest", "seene ke beech", "beecho beech"] },
+        { "value": "left", "label": { "en": "Left side", "hi": "बाईं ओर" }, "icon": "arrow-left", "aliases": ["left", "left side", "baayen", "bayen", "baye", "left chest", "heart", "left side of chest"] },
+        { "value": "right", "label": { "en": "Right side", "hi": "दाईं ओर" }, "icon": "arrow-right", "aliases": ["right", "right side", "daayen", "dayen", "daye", "right chest", "right side of chest"] },
+        { "value": "upper_abdomen", "label": { "en": "Upper stomach", "hi": "ऊपरी पेट" }, "icon": "stomach", "aliases": ["stomach", "pet", "upper abdomen", "upper stomach", "oopari pet", "gas"] }
       ],
       "next": "cp_character"
     },
@@ -66,10 +66,10 @@
       "allow_voice": true,
       "prompt": { "en": "What does the pain feel like?", "hi": "दर्द कैसा महसूस होता है?" },
       "options": [
-        { "value": "pressure", "label": { "en": "Pressure / squeezing", "hi": "दबाव / जकड़न" }, "icon": "compress", "aliases": ["pressure", "heavy", "squeezing", "dabav", "bhaari"] },
-        { "value": "burning", "label": { "en": "Burning", "hi": "जलन" }, "icon": "fire", "aliases": ["burning", "jalan"] },
-        { "value": "sharp", "label": { "en": "Sharp / stabbing", "hi": "तेज़ / चुभन" }, "icon": "bolt", "aliases": ["sharp", "stabbing", "tez", "chubhan"] },
-        { "value": "dull", "label": { "en": "Dull ache", "hi": "हल्का दर्द" }, "icon": "cloud", "aliases": ["dull", "mild", "halka"] }
+        { "value": "pressure", "label": { "en": "Pressure / squeezing", "hi": "दबाव / जकड़न" }, "icon": "compress", "aliases": ["pressure", "heavy", "squeezing", "tight", "tightness", "dabav", "bhaari", "jakdan", "bojh"] },
+        { "value": "burning", "label": { "en": "Burning", "hi": "जलन" }, "icon": "fire", "aliases": ["burning", "jalan", "heartburn", "acid", "mirchi"] },
+        { "value": "sharp", "label": { "en": "Sharp / stabbing", "hi": "तेज़ / चुभन" }, "icon": "bolt", "aliases": ["sharp", "stabbing", "tez", "chubhan", "suie", "severe", "pricking", "cutting"] },
+        { "value": "dull", "label": { "en": "Dull ache", "hi": "हल्का दर्द" }, "icon": "cloud", "aliases": ["dull", "mild", "halka", "meetha dard", "slow", "continuous", "constant"] }
       ],
       "next": "cp_radiation"
     },
@@ -82,10 +82,10 @@
       "allow_voice": true,
       "prompt": { "en": "Does the pain spread anywhere?", "hi": "क्या दर्द कहीं और फैलता है?" },
       "options": [
-        { "value": "left_arm", "label": { "en": "To the left arm", "hi": "बाएँ हाथ में" }, "icon": "arm", "aliases": ["arm", "left arm", "haath", "baaya haath"] },
-        { "value": "jaw", "label": { "en": "To the jaw / neck", "hi": "जबड़े / गर्दन में" }, "icon": "face", "aliases": ["jaw", "neck", "jabda", "gardan"] },
-        { "value": "back", "label": { "en": "To the back", "hi": "पीठ में" }, "icon": "back", "aliases": ["back", "peeth"] },
-        { "value": "no", "label": { "en": "No, it stays in one place", "hi": "नहीं, एक ही जगह" }, "icon": "no", "aliases": ["no", "nahi", "one place"] }
+        { "value": "left_arm", "label": { "en": "To the left arm", "hi": "बाएँ हाथ में" }, "icon": "arm", "aliases": ["arm", "left arm", "haath", "baaya haath", "shoulder", "kandha", "left shoulder"] },
+        { "value": "jaw", "label": { "en": "To the jaw / neck", "hi": "जबड़े / गर्दन में" }, "icon": "face", "aliases": ["jaw", "neck", "jabda", "gardan", "throat", "gala"] },
+        { "value": "back", "label": { "en": "To the back", "hi": "पीठ में" }, "icon": "back", "aliases": ["back", "peeth", "piche", "spine"] },
+        { "value": "no", "label": { "en": "No, it stays in one place", "hi": "नहीं, एक ही जगह" }, "icon": "no", "aliases": ["no", "nahi", "one place", "nowhere", "kahin nahi", "sirf chest", "only chest", "stays here"] }
       ],
       "next": "cp_breathless"
     },
@@ -98,8 +98,8 @@
       "allow_voice": true,
       "prompt": { "en": "Are you also short of breath?", "hi": "क्या आपको सांस लेने में तकलीफ़ भी है?" },
       "options": [
-        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "check", "aliases": ["yes", "haan", "ha"] },
-        { "value": "no", "label": { "en": "No", "hi": "नहीं" }, "icon": "no", "aliases": ["no", "nahi"] }
+        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "check", "aliases": ["yes", "haan", "ha", "breathless", "breathlessness", "short of breath", "saans", "saans lene me takleef", "difficulty breathing", "choking"] },
+        { "value": "no", "label": { "en": "No", "hi": "नहीं" }, "icon": "no", "aliases": ["no", "nahi", "na", "no breathless", "saans theek hai", "normal breathing"] }
       ],
       "next": "cp_sweating"
     },
@@ -112,8 +112,8 @@
       "allow_voice": true,
       "prompt": { "en": "Are you sweating more than usual?", "hi": "क्या आपको सामान्य से ज़्यादा पसीना आ रहा है?" },
       "options": [
-        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "check", "aliases": ["yes", "haan", "sweating", "paseena"] },
-        { "value": "no", "label": { "en": "No", "hi": "नहीं" }, "icon": "no", "aliases": ["no", "nahi"] }
+        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "check", "aliases": ["yes", "haan", "ha", "sweating", "sweat", "paseena", "bohot paseena", "profuse sweating", "cold sweat"] },
+        { "value": "no", "label": { "en": "No", "hi": "नहीं" }, "icon": "no", "aliases": ["no", "nahi", "na", "no sweat", "paseena nahi"] }
       ],
       "next": "cp_severity"
     },
@@ -138,10 +138,10 @@
       "allow_voice": true,
       "prompt": { "en": "When did the fever start?", "hi": "बुखार कब शुरू हुआ?" },
       "options": [
-        { "value": "today", "label": { "en": "Today", "hi": "आज" }, "icon": "clock", "aliases": ["today", "aaj"] },
-        { "value": "2_3_days", "label": { "en": "2-3 days ago", "hi": "2-3 दिन पहले" }, "icon": "calendar", "aliases": ["days", "din"] },
-        { "value": "about_week", "label": { "en": "About a week", "hi": "लगभग एक हफ्ता" }, "icon": "calendar", "aliases": ["week", "hafta"] },
-        { "value": "over_week", "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा" }, "icon": "calendar", "aliases": ["long", "zyada"] }
+        { "value": "today", "label": { "en": "Today", "hi": "आज" }, "icon": "clock", "aliases": ["today", "aaj", "morning", "subah", "just now", "abhi", "hours"] },
+        { "value": "2_3_days", "label": { "en": "2-3 days ago", "hi": "2-3 दिन पहले" }, "icon": "calendar", "aliases": ["days", "din", "2 days", "3 days", "do din", "kal", "yesterday", "parso"] },
+        { "value": "about_week", "label": { "en": "About a week", "hi": "लगभग एक हफ्ता" }, "icon": "calendar", "aliases": ["week", "hafta", "about a week", "ek hafta"] },
+        { "value": "over_week", "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा" }, "icon": "calendar", "aliases": ["long", "zyada", "more than a week", "months", "mahina", "bahut din"] }
       ],
       "next": "fever_grade"
     },
@@ -154,9 +154,9 @@
       "allow_voice": true,
       "prompt": { "en": "How high is the fever?", "hi": "बुखार कितना है?" },
       "options": [
-        { "value": "low_grade", "label": { "en": "Mild / low", "hi": "हल्का" }, "icon": "thermometer", "aliases": ["low", "mild", "halka"] },
-        { "value": "high_grade", "label": { "en": "High", "hi": "तेज़" }, "icon": "thermometer", "aliases": ["high", "tez"] },
-        { "value": "with_chills", "label": { "en": "High with chills / shivering", "hi": "कंपकंपी के साथ तेज़" }, "icon": "snow", "aliases": ["chills", "shivering", "kampkampi", "thand"] }
+        { "value": "low_grade", "label": { "en": "Mild / low", "hi": "हल्का" }, "icon": "thermometer", "aliases": ["low", "mild", "halka", "thoda", "kam"] },
+        { "value": "high_grade", "label": { "en": "High", "hi": "तेज़" }, "icon": "thermometer", "aliases": ["high", "tez", "bohot", "bahut", "very high", "severe"] },
+        { "value": "with_chills", "label": { "en": "High with chills / shivering", "hi": "कंपकंपी के साथ तेज़" }, "icon": "snow", "aliases": ["chills", "shivering", "kampkampi", "thand", "shiver"] }
       ],
       "next": "fever_assoc"
     },
@@ -169,10 +169,10 @@
       "allow_voice": true,
       "prompt": { "en": "Do you have any of these along with the fever?", "hi": "बुखार के साथ इनमें से कुछ है?" },
       "options": [
-        { "value": "cough", "label": { "en": "Cough", "hi": "खांसी" }, "icon": "lungs", "aliases": ["cough", "khansi"] },
-        { "value": "rash", "label": { "en": "Skin rash", "hi": "त्वचा पर दाने" }, "icon": "spots", "aliases": ["rash", "daane"] },
-        { "value": "burning_urine", "label": { "en": "Burning while urinating", "hi": "पेशाब में जलन" }, "icon": "drop", "aliases": ["urine", "peshab", "burning urine"] },
-        { "value": "none", "label": { "en": "None of these", "hi": "इनमें से कोई नहीं" }, "icon": "no", "aliases": ["none", "koi nahi"] }
+        { "value": "cough", "label": { "en": "Cough", "hi": "खांसी" }, "icon": "lungs", "aliases": ["cough", "khansi", "cold", "jukham"] },
+        { "value": "rash", "label": { "en": "Skin rash", "hi": "त्वचा पर दाने" }, "icon": "spots", "aliases": ["rash", "daane", "skin rash", "khujli"] },
+        { "value": "burning_urine", "label": { "en": "Burning while urinating", "hi": "पेशाब में जलन" }, "icon": "drop", "aliases": ["urine", "peshab", "burning urine", "peshab me jalan"] },
+        { "value": "none", "label": { "en": "None of these", "hi": "इनमें से कोई नहीं" }, "icon": "no", "aliases": ["none", "koi nahi", "kuch nahi", "nothing"] }
       ],
       "next": "past_history"
     },
@@ -186,12 +186,12 @@
       "prompt": { "en": "Do you have any known health conditions?", "hi": "क्या आपको पहले से कोई बीमारी है?" },
       "help": { "en": "Select all that apply, or tap None.", "hi": "जो लागू हों सभी चुनें, या 'कोई नहीं' चुनें।" },
       "options": [
-        { "value": "diabetes", "label": { "en": "Diabetes", "hi": "मधुमेह (शुगर)" }, "icon": "drop", "aliases": ["diabetes", "sugar", "shugar"] },
-        { "value": "hypertension", "label": { "en": "High blood pressure", "hi": "उच्च रक्तचाप (बीपी)" }, "icon": "gauge", "aliases": ["bp", "blood pressure", "hypertension"] },
-        { "value": "heart_disease", "label": { "en": "Heart disease", "hi": "हृदय रोग" }, "icon": "heart", "aliases": ["heart", "dil"] },
-        { "value": "asthma", "label": { "en": "Asthma / breathing", "hi": "दमा / सांस" }, "icon": "lungs", "aliases": ["asthma", "dama"] },
-        { "value": "thyroid", "label": { "en": "Thyroid", "hi": "थायराइड" }, "icon": "gland", "aliases": ["thyroid"] },
-        { "value": "none", "label": { "en": "None", "hi": "कोई नहीं" }, "icon": "no", "aliases": ["none", "koi nahi", "healthy"] }
+        { "value": "diabetes", "label": { "en": "Diabetes", "hi": "मधुमेह (शुगर)" }, "icon": "drop", "aliases": ["diabetes", "sugar", "shugar", "madhumeh"] },
+        { "value": "hypertension", "label": { "en": "High blood pressure", "hi": "उच्च रक्तचाप (बीपी)" }, "icon": "gauge", "aliases": ["bp", "blood pressure", "hypertension", "high bp"] },
+        { "value": "heart_disease", "label": { "en": "Heart disease", "hi": "हृदय रोग" }, "icon": "heart", "aliases": ["heart", "heart disease", "dil ki bimari", "cardiac"] },
+        { "value": "asthma", "label": { "en": "Asthma / breathing", "hi": "दमा / सांस" }, "icon": "lungs", "aliases": ["asthma", "dama", "breathing", "respiratory"] },
+        { "value": "thyroid", "label": { "en": "Thyroid", "hi": "थायराइड" }, "icon": "gland", "aliases": ["thyroid", "thyroid problem"] },
+        { "value": "none", "label": { "en": "None", "hi": "कोई नहीं" }, "icon": "no", "aliases": ["none", "koi nahi", "healthy", "fit", "nothing", "no disease", "kuch nahi", "no conditions"] }
       ],
       "next": "drug_allergy"
     },
@@ -204,8 +204,8 @@
       "allow_voice": true,
       "prompt": { "en": "Are you allergic to any medicines?", "hi": "क्या आपको किसी दवा से एलर्जी है?" },
       "options": [
-        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "warning", "aliases": ["yes", "haan"] },
-        { "value": "no", "label": { "en": "No / not sure", "hi": "नहीं / पता नहीं" }, "icon": "no", "aliases": ["no", "nahi", "not sure"] }
+        { "value": "yes", "label": { "en": "Yes", "hi": "हाँ" }, "icon": "warning", "aliases": ["yes", "haan", "ha", "allergic", "allergy", "dawa se allergy", "penicillin"] },
+        { "value": "no", "label": { "en": "No / not sure", "hi": "नहीं / पता नहीं" }, "icon": "no", "aliases": ["no", "nahi", "not sure", "no allergy", "koi allergy nahi"] }
       ],
       "next": "END"
     }

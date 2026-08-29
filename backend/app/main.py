@@ -6,15 +6,25 @@ Interactive API docs at http://localhost:8000/docs
 """
 from __future__ import annotations
 
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .core.asr_engine import active_engine
+from .core.asr_engine import active_engine, warmup as warmup_asr
 from .core.ontology_loader import load_ontology
 from .routers import asr, dialogue, documents, privacy, session, summary
 
-app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    threading.Thread(target=warmup_asr, daemon=True, name="asr-warmup").start()
+    yield
+
+
+app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
