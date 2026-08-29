@@ -3,6 +3,14 @@
 
 const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
+function blobFilename(blob) {
+  const type = (blob.type || "").toLowerCase();
+  if (type.includes("mp4") || type.includes("m4a")) return "clip.m4a";
+  if (type.includes("ogg")) return "clip.ogg";
+  if (type.includes("wav")) return "clip.wav";
+  return "clip.webm";
+}
+
 async function req(path, opts = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -44,6 +52,8 @@ export const api = {
   },
 
   // Production ASR seam. mock_text tests the pipeline; blob is real audio.
+  asrStatus: () => req("/api/asr/status"),
+
   async transcribe(text, language = "en") {
     const fd = new FormData();
     fd.append("mock_text", text);
@@ -54,10 +64,12 @@ export const api = {
 
   async transcribeAudio(blob, language = "en") {
     const fd = new FormData();
-    fd.append("audio", blob, "clip.webm");
+    fd.append("audio", blob, blobFilename(blob));
     fd.append("language", language);
     const res = await fetch(`${BASE}/api/asr`, { method: "POST", body: fd });
-    if (!res.ok) throw new Error(`ASR failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`ASR failed: ${res.status}`);
+    }
     return res.json();
   },
 };
