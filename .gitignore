@@ -19,3 +19,10 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Audio test clips
+*.wav
+*.webm
+*.mp3
+*.ogg
+*.m4a
