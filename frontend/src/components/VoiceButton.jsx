@@ -10,6 +10,13 @@ function hasWebSpeech() {
   return Boolean(typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition));
 }
 
+function isSecureSpeechContext() {
+  if (typeof window === "undefined") return false;
+  return window.isSecureContext || window.location.protocol === "https:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+}
+
+const FORCE_SERVER_ASR = String(import.meta.env.VITE_USE_SERVER_ASR || "").toLowerCase() === "1" || String(import.meta.env.VITE_USE_SERVER_ASR || "").toLowerCase() === "true";
+
 // Preferred recording mime types in priority order
 const PREFERRED_MIMES = [
   "audio/webm;codecs=opus",
@@ -33,7 +40,7 @@ export default function VoiceButton({
   const [errorMsg, setErrorMsg] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0); // 0 to 100 for live meter
   const [lastHeard, setLastHeard] = useState(null);
-  const [engineMode, setEngineMode] = useState(() => hasWebSpeech() ? "webspeech" : "server"); // "webspeech" preferred | "server" (faster-whisper) fallback
+  const [engineMode, setEngineMode] = useState(() => FORCE_SERVER_ASR ? "server" : hasWebSpeech() ? "webspeech" : "server"); // "webspeech" preferred | "server" fallback
   const [serverStatus, setServerStatus] = useState(null);
   const [interimText, setInterimText] = useState(""); // live partial transcript
 
@@ -68,7 +75,18 @@ export default function VoiceButton({
 
   // Web Speech instance setup
   useEffect(() => {
-    if (!hasWebSpeech()) return;
+    if (!hasWebSpeech()) {
+      if (!FORCE_SERVER_ASR) {
+        setErrorMsg(t(langRef.current, "voiceUnsupported"));
+      }
+      return;
+    }
+
+    if (!isSecureSpeechContext()) {
+      setErrorMsg(t(langRef.current, "voiceUnsupported"));
+      setEngineMode("server");
+      return;
+    }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
@@ -325,6 +343,15 @@ export default function VoiceButton({
 
   // ── Web Speech API Path ───────────────────────────────────────────────────
   function startWebSpeech() {
+    if (!hasWebSpeech() || !isSecureSpeechContext()) {
+      setEngineMode("server");
+      setErrorMsg(t(langRef.current, "voiceUnsupported"));
+      if (navigator.mediaDevices?.getUserMedia) {
+        startServerCapture();
+      }
+      return;
+    }
+
     if (!srRef.current) {
       setEngineMode("server");
       startServerCapture();
@@ -340,7 +367,11 @@ export default function VoiceButton({
       console.warn("[VoiceButton] Web Speech start error:", e);
       // Fallback to server
       setEngineMode("server");
-      startServerCapture();
+      if (navigator.mediaDevices?.getUserMedia) {
+        startServerCapture();
+      } else {
+        setErrorMsg(t(langRef.current, "voiceUnsupported"));
+      }
     }
   }
 
