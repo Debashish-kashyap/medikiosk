@@ -6,6 +6,7 @@ import ConsentScreen from "./components/ConsentScreen.jsx";
 import QuestionCard from "./components/QuestionCard.jsx";
 import RedFlagBanner from "./components/RedFlagBanner.jsx";
 import SummaryView from "./components/SummaryView.jsx";
+import DoctorDashboard from "./components/DoctorDashboard.jsx";
 
 // Kiosk flow: language -> consent -> interview -> summary.
 export default function App() {
@@ -86,7 +87,7 @@ export default function App() {
       }
       const s = await api.summary(sid);
       setSummary(s);
-      setPhase("summary");
+      setPhase("dashboard");
     } catch (e) {
       // Fallback demo data for immediate testing & judging preview
       setSessionId(sessionId || "DEMO-8829");
@@ -126,7 +127,7 @@ export default function App() {
           },
         ],
       });
-      setPhase("summary");
+      setPhase("dashboard");
     } finally {
       setBusy(false);
     }
@@ -150,7 +151,7 @@ export default function App() {
           <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
         </div>
         <div className="flex items-center gap-2">
-          {phase !== "summary" && (
+          {phase !== "summary" && phase !== "dashboard" && (
             <button
               onClick={openDoctorDashboard}
               disabled={busy}
@@ -197,6 +198,17 @@ export default function App() {
             onSubmit={submitAnswer}
             onConfirmYes={confirmYes}
             onConfirmNo={confirmNo}
+          />
+        )}
+
+        {phase === "dashboard" && summary && (
+          <DoctorDashboard
+            lang={lang}
+            sessionId={sessionId}
+            summary={summary}
+            redFlags={redFlags}
+            onOpenSummary={() => setPhase("summary")}
+            onRestart={restart}
           />
         )}
 
