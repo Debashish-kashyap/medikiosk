@@ -22,6 +22,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
   const docs = summary?.prior_investigations?.length || 0;
   const chiefComplaint = summary?.chief_complaint || "Not captured yet";
   const hpiPreview = summary?.hpi || "No history recorded yet.";
+  const currentPatientName = summary?.patient_name || selectedPatient?.name || "Current Patient";
 
   const triageCards = useMemo(
     () => [
@@ -97,6 +98,10 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">{t(lang, "dashboardBadge")}</p>
             <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900">{t(lang, "dashboardTitle")}</h1>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-sm font-semibold text-teal-800">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500" />
+              <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
+            </div>
             <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
           </div>
 
