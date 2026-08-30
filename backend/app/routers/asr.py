@@ -1,15 +1,4 @@
-"""Speech-to-text endpoint (Module A voice path).
-
-Lane 4 — production-ready ASR router.
-
-- ``POST /api/asr`` — transcribe audio (faster-whisper) or mock text.
-- ``GET  /api/asr/status`` — check which engine is active (frontend auto-detect).
-
-The kiosk frontend uses the browser Web Speech API by default (zero setup).
-This endpoint is the production seam: faster-whisper runs here when enabled.
-Set ``MEDIKIOSK_ASR=whisper`` (and ``pip install faster-whisper``) to transcribe
-uploaded audio; ``mock_text`` still works so the pipeline is testable without a mic.
-"""
+"""Lane 4: ASR endpoint — POST /api/asr and GET /api/asr/status."""
 from __future__ import annotations
 
 import asyncio
@@ -18,23 +7,17 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Form, UploadFile
 
-from ..core.asr_engine import active_engine, engine_status, suffix_for_content_type, transcribe_audio
+from ..core.asr_engine import active_engine, engine_status, transcribe_audio
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api", tags=["asr"])
 
-# First load of a Whisper model on CPU can exceed 30s; keep this generous.
-_TRANSCRIBE_TIMEOUT = 90
+_TRANSCRIBE_TIMEOUT = 90  # seconds before we give up and return empty
 
 
 @router.get("/asr/status")
 async def asr_status() -> dict:
-    """Frontend calls this on mount to decide whether to use server ASR.
-
-    Returns the active engine name and whether real ASR is available.
-    The frontend auto-enables the MediaRecorder path if ``available`` is true.
-    """
+    """Return current ASR engine info (used by VoiceButton on mount)."""
     return engine_status()
 
 
@@ -44,14 +27,14 @@ async def transcribe(
     mock_text: Optional[str] = Form(default=None),
     language: str = Form(default="en"),
 ) -> dict:
-    """Transcribe uploaded audio or return a mock transcript.
+    """Transcribe speech audio or echo mock_text for testing.
 
-    Priority:
-    1. If ``mock_text`` is provided, echo it back (pipeline testing without a mic).
-    2. If ``audio`` is uploaded, run through the ASR engine (faster-whisper / stub).
-    3. If neither, return an empty result with a note.
+    Accepts multipart/form-data with:
+      - audio: audio blob (webm, wav, ogg, m4a, mp3)
+      - language: BCP-47 tag (en, hi, mr, …)
+      - mock_text: bypass ASR and return this string directly (testing only)
     """
-    # --- Mock path (pipeline testing) ---
+    # --- Mock / testing bypass ---
     if mock_text is not None:
         return {
             "transcript": mock_text,
@@ -60,49 +43,50 @@ async def transcribe(
             "engine": "mock",
         }
 
-    # --- No audio uploaded ---
+    # --- No audio provided ---
     if audio is None:
         return {
             "transcript": "",
             "confidence": 0.0,
             "language": language,
             "engine": active_engine(),
-            "note": "No audio uploaded.",
+            "note": "no audio payload received",
         }
 
-    # --- Real transcription path ---
-    data = await audio.read()
-    content_type = audio.content_type
-    logger.info(
-        "ASR request: filename=%s content_type=%s bytes=%d language=%s",
-        audio.filename, content_type, len(data), language,
-    )
-
-    # Run in a thread so we don't block the event loop.
+    # --- Real transcription ---
     try:
+        data = await audio.read()
+        logger.info(
+            "ASR request: %d bytes, content_type=%s, lang=%s, first_bytes=%s",
+            len(data),
+            audio.content_type,
+            language,
+            data[:8].hex() if data else "empty",
+        )
+
         result = await asyncio.wait_for(
-            asyncio.to_thread(transcribe_audio, data, language, content_type),
+            asyncio.to_thread(
+                transcribe_audio, data, language, audio.content_type
+            ),
             timeout=_TRANSCRIBE_TIMEOUT,
         )
+        return result
+
     except asyncio.TimeoutError:
-        logger.warning("ASR transcription timed out after %ds", _TRANSCRIBE_TIMEOUT)
+        logger.warning("ASR timed out after %ds", _TRANSCRIBE_TIMEOUT)
         return {
             "transcript": "",
             "confidence": 0.0,
             "language": language,
             "engine": active_engine(),
-            "note": f"Transcription timed out after {_TRANSCRIBE_TIMEOUT}s.",
+            "note": f"ASR timed out after {_TRANSCRIBE_TIMEOUT}s",
         }
     except Exception:
-        logger.exception("ASR transcription error")
+        logger.exception("Unexpected ASR error")
         return {
             "transcript": "",
             "confidence": 0.0,
             "language": language,
             "engine": active_engine(),
-            "note": "Internal ASR error.",
+            "note": "internal ASR error — check server logs",
         }
-
-    logger.info("ASR result: transcript=%r confidence=%.2f engine=%s", result.get("transcript"), result.get("confidence", 0), result.get("engine"))
-
-    return result
