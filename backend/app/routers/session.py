@@ -35,6 +35,9 @@ def give_consent(session_id: str, body: ConsentRequest) -> dict:
     session = _require(session_id)
     from datetime import datetime, timezone
 
+    if body.given and not body.abha_id:
+        raise HTTPException(status_code=422, detail="ABHA ID is required before collecting health information.")
+
     session["consent"] = {
         "given": body.given,
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -44,6 +47,7 @@ def give_consent(session_id: str, body: ConsentRequest) -> dict:
         try:
             abha_service.link_abha(session_id, body.abha_id, body.otp)
             session["consent"]["abha_linked"] = True
+            session["consent"]["abha_id"] = body.abha_id.strip()
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except RuntimeError:
