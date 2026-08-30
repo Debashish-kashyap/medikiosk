@@ -18,15 +18,17 @@ from typing import Any
 
 USE_LLM = os.getenv("MEDIKIOSK_LLM", "").lower() in {"1", "true", "openai", "on"}
 
-# Common negation terms in English & Hindi
+# Common negation terms in English, Hindi & Assamese
 NEGATION_WORDS = {
     "no", "not", "none", "nothing", "never", "nah", "nope", "without",
     "nahi", "nahin", "na", "koi nahi", "kuch nahi", "bilkul nahi", "mat",
+    "nohoi", "nahai", "nai", "eku nai", "kono nai", "নহয়", "নাই", "একো নাই",
 }
 
 AFFIRMATION_WORDS = {
     "yes", "yeah", "yep", "sure", "definitely", "present", "a lot", "severe", "much",
     "haan", "ha", "bilkul", "bohot", "bahut", "zyada", "hai",
+    "hoi", "haya", "ase", "bohut", "হয়", "আছে", "বহুত",
 }
 
 
@@ -67,6 +69,9 @@ SCALE_WORDS = {
     "aath": 8, "ath": 8, "nau": 9, "das": 10, "duss": 10,
     "शून्य": 0, "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पाँच": 5, "पांच": 5,
     "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
+    # Assamese (Latin & Eastern Nagari / Bengali-Assamese script)
+    "xunya": 0, "dui": 2, "tini": 3, "sari": 4, "paas": 5, "soy": 6, "xaat": 7, "naw": 9, "doh": 10,
+    "শূণ্য": 0, "দুই": 2, "তিনি": 3, "চাৰি": 4, "পাঁচ": 5, "ছয়": 6, "সাত": 7, "আঠ": 8, "ন": 9, "দহ": 10,
 }
 
 
