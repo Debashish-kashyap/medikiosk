@@ -40,7 +40,7 @@ export default function VoiceButton({
   const [errorMsg, setErrorMsg] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0); // 0 to 100 for live meter
   const [lastHeard, setLastHeard] = useState(null);
-  const [engineMode, setEngineMode] = useState(() => FORCE_SERVER_ASR ? "server" : hasWebSpeech() ? "webspeech" : "server"); // "webspeech" preferred | "server" fallback
+  const [engineMode, setEngineMode] = useState(() => FORCE_SERVER_ASR ? "server" : "server");
   const [serverStatus, setServerStatus] = useState(null);
   const [interimText, setInterimText] = useState(""); // live partial transcript
 
@@ -65,12 +65,17 @@ export default function VoiceButton({
     api.asrStatus()
       .then((status) => {
         setServerStatus(status);
-        // Keep webspeech as default if available; only fall back to server if no webspeech
-        if (!hasWebSpeech() && status?.available) {
+        if (status?.available) {
           setEngineMode("server");
+        } else if (hasWebSpeech() && isSecureSpeechContext()) {
+          setEngineMode("webspeech");
         }
       })
-      .catch(() => { /* server offline — webspeech still works */ });
+      .catch(() => {
+        if (hasWebSpeech() && isSecureSpeechContext()) {
+          setEngineMode("webspeech");
+        }
+      });
   }, []);
 
   // Web Speech instance setup
