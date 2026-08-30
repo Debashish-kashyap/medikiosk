@@ -22,6 +22,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
   const docs = summary?.prior_investigations?.length || 0;
   const chiefComplaint = summary?.chief_complaint || "Not captured yet";
   const hpiPreview = summary?.hpi || "No history recorded yet.";
+  const selectedPatient = queue.find((patient) => patient.id === selectedId) || queue[0];
   const currentPatientName = summary?.patient_name || selectedPatient?.name || "Current Patient";
 
   const triageCards = useMemo(
@@ -32,8 +33,6 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
     ],
     [lang, queue],
   );
-
-  const selectedPatient = queue.find((patient) => patient.id === selectedId) || queue[0];
 
   const filteredPatients = queue.filter((patient) => {
     const matchesFilter = filter === "all" ? true : patient.priority === filter;
