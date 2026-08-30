@@ -85,8 +85,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full flex flex-col">
-      <header className="bg-kiosk-primary text-white px-6 py-4 flex items-center justify-between shadow">
+    <div className="min-h-full flex flex-col bg-slate-50 print:bg-white">
+      <header className="bg-kiosk-primary text-white px-6 py-4 flex items-center justify-between shadow print:hidden">
         <div>
           <div className="text-2xl font-bold">{t(lang, "appTitle")}</div>
           <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
@@ -102,9 +102,9 @@ export default function App() {
         <RedFlagBanner lang={lang} flags={redFlags} />
       )}
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6">
+      <main className={`flex-1 w-full mx-auto px-4 py-6 print:p-0 print:max-w-none ${phase === "summary" ? "max-w-5xl" : "max-w-3xl"}`}>
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
             {error} — is the API running at {api.base}?
           </div>
         )}
@@ -134,7 +134,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="text-center text-xs text-slate-400 py-3">
+      <footer className="text-center text-xs text-slate-400 py-3 print:hidden">
         MediKiosk · PS 26047 · demo scaffold — the LLM is not the source of truth
       </footer>
     </div>

@@ -26,3 +26,67 @@ body {
 .tap-selected {
   @apply border-kiosk-primary bg-kiosk-primary/10 text-kiosk-primary;
 }
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.96; transform: scale(1.002); }
+}
+
+@keyframes bounceGentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounceGentle 2s ease-in-out infinite;
+}
+
+/* Print-friendly styles for physician encounter card & access trail */
+@media print {
+  body {
+    background: #ffffff !important;
+    font-size: 12pt !important;
+    color: #000000 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Expand textareas in print mode so entire HPI notes print */
+  textarea {
+    border: none !important;
+    padding: 0 !important;
+    resize: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    font-family: inherit !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Prevent card splitting across pages */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+
+  .border,
+  .border-2 {
+    border-color: #cbd5e1 !important;
+  }
+
+  .bg-slate-50,
+  .bg-slate-50\/30,
+  .bg-slate-50\/50,
+  .bg-slate-100 {
+    background-color: #f8fafc !important;
+  }
+}
