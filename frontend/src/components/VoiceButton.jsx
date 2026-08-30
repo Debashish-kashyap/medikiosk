@@ -135,6 +135,11 @@ export default function VoiceButton({
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.5;
@@ -203,7 +208,11 @@ export default function VoiceButton({
 
   // ── Server ASR MediaRecorder Path (faster-whisper) ──────────────────────────
   async function startServerCapture() {
+    if (listeningRef.current || processing) return;
+    listeningRef.current = true;
+    setListening(true);
     setErrorMsg(null);
+
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -211,11 +220,12 @@ export default function VoiceButton({
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 16000,
         },
       });
     } catch (err) {
       console.error("[VoiceButton] getUserMedia error:", err);
+      listeningRef.current = false;
+      setListening(false);
       setErrorMsg(
         err.name === "NotFoundError" || err.name === "DevicesNotFoundError"
           ? t(langRef.current, "micNotFound")
@@ -275,9 +285,7 @@ export default function VoiceButton({
       }
     };
 
-    rec.start(100);
-    setListening(true);
-    listeningRef.current = true;
+    rec.start();
     startVAD(stream);
 
     maxTimerRef.current = setTimeout(() => {
