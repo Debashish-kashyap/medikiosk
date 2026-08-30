@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "../i18n";
+import { SPEECH_LANG, t } from "../i18n";
 import VoiceButton from "./VoiceButton.jsx";
 
 const ICONS = {
@@ -28,9 +28,49 @@ export default function QuestionCard({ lang, question, busy, autoVoice, onVoiceT
   const isMulti = question.type === "multi_select";
   const isScale = question.type === "scale";
 
+  const readQuestionAloud = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    const text = [question.prompt, question.help, ...(question.options || []).map((option) => option.label || option.text || "")]
+      .filter(Boolean)
+      .join(". ");
+
+    if (!text) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LANG[lang] || "en-US";
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || !question || !question.prompt) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      readQuestionAloud();
+    }, 700);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.speechSynthesis.cancel();
+    };
+  }, [question.node_id, lang]);
+
   return (
     <div className="bg-white rounded-2xl shadow p-6">
-      <h2 className="text-2xl font-bold mb-1">{question.prompt}</h2>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <h2 className="text-2xl font-bold">{question.prompt}</h2>
+        <button type="button" className="tap px-3 py-2 text-sm" onClick={readQuestionAloud} disabled={busy}>
+          🔊 {t(lang, "readAloud")}
+        </button>
+      </div>
       {question.help && <p className="text-slate-500 mb-4">{question.help}</p>}
 
       {/* Low-confidence confirmation loop (noisy-room / ASR safety). */}

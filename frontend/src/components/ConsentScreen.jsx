@@ -1,11 +1,38 @@
-import { useState } from "react";
-import { t } from "../i18n";
+import { useEffect, useState } from "react";
+import { SPEECH_LANG, t } from "../i18n";
 
-// Consent-first, audio-guided (TTS playback is a TODO for the Frontend lane).
 export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
   const [abhaId, setAbhaId] = useState("");
   const [otp, setOtp] = useState("");
   const [localError, setLocalError] = useState("");
+
+  const readConsentAloud = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    const text = `${t(lang, "consentTitle")}. ${t(lang, "consentBody")}. ${t(lang, "abhaIdLabel")}. ${t(lang, "otpLabel")}.`;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LANG[lang] || "en-US";
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      readConsentAloud();
+    }, 600);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.speechSynthesis.cancel();
+    };
+  }, [lang]);
 
   const handleSubmit = () => {
     const cleanedAbhaId = abhaId.trim();
@@ -64,6 +91,9 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
       {localError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">{localError}</div>}
 
       <div className="flex flex-col sm:flex-row gap-3">
+        <button type="button" className="tap sm:w-40" onClick={readConsentAloud}>
+          🔊 {t(lang, "readAloud")}
+        </button>
         <button className="tap tap-selected flex-1 py-6" disabled={busy} onClick={handleSubmit}>
           {busy ? "…" : t(lang, "consentAgree")}
         </button>
