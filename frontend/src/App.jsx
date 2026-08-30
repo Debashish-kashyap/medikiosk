@@ -25,14 +25,14 @@ export default function App() {
     setPhase("consent");
   }
 
-  async function agreeConsent() {
+  async function agreeConsent(abhaId, otp) {
     setBusy(true);
     setError(null);
     try {
       const res = await api.createSession(lang);
       setSessionId(res.session_id);
       setQuestion(res.question);
-      await api.giveConsent(res.session_id, true);
+      await api.giveConsent(res.session_id, true, abhaId, otp);
       setPhase("interview");
     } catch (e) {
       setError(String(e));

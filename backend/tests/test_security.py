@@ -49,10 +49,16 @@ def test_consent_and_protected_record_api():
     client = TestClient(app)
     created = client.post("/api/session", json={"language": "en"}).json()
     patient_id = created["session_id"]
-    # Health answers cannot be collected before consent.
+    # Health answers cannot be collected before consent or patient authentication.
     denied = client.post(f"/api/session/{patient_id}/answer", json={"node_id": "chief_complaint", "touch_value": "chest_pain"})
     assert denied.status_code == 403
-    assert client.post(f"/api/session/{patient_id}/consent", json={"given": True}).status_code == 200
+    missing_abha = client.post(f"/api/session/{patient_id}/consent", json={"given": True, "otp": "123456"})
+    assert missing_abha.status_code == 422
+    consented = client.post(
+        f"/api/session/{patient_id}/consent",
+        json={"given": True, "abha_id": "91-1234-5678-9012", "otp": "123456"},
+    )
+    assert consented.status_code == 200
     answered = client.post(f"/api/session/{patient_id}/answer", json={"node_id": "chief_complaint", "touch_value": "chest_pain"})
     assert answered.status_code == 200
     visible_log = client.get(f"/api/session/{patient_id}/access-log")

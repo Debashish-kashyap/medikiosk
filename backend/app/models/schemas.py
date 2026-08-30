@@ -17,11 +17,15 @@ class CreateSessionRequest(BaseModel):
 
 class ConsentRequest(BaseModel):
     given: bool = True
-    abha_id: str | None = Field(default=None, min_length=1, description="Optional ABHA number/address for linkage")
+    abha_id: str | None = Field(default=None, min_length=1, description="ABHA number/address required for patient authentication before intake")
     otp: str | None = Field(default=None, min_length=4, repr=False, description="One-time verification code; never persisted")
 
     @model_validator(mode="after")
-    def require_otp_for_abha_link(self):
+    def require_abha_identity_before_intake(self):
+        if self.given and not self.abha_id:
+            raise ValueError("ABHA ID is required before collecting health information.")
+        if self.given and self.abha_id and not self.abha_id.strip():
+            raise ValueError("ABHA ID is required before collecting health information.")
         if self.given and self.abha_id and not self.otp:
             raise ValueError("OTP is required when requesting ABHA linkage.")
         return self
