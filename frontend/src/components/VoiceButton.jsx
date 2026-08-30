@@ -33,8 +33,9 @@ export default function VoiceButton({
   const [errorMsg, setErrorMsg] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0); // 0 to 100 for live meter
   const [lastHeard, setLastHeard] = useState(null);
-  const [engineMode, setEngineMode] = useState("server"); // "server" (faster-whisper) | "webspeech"
+  const [engineMode, setEngineMode] = useState(() => hasWebSpeech() ? "webspeech" : "server"); // "webspeech" preferred | "server" (faster-whisper) fallback
   const [serverStatus, setServerStatus] = useState(null);
+  const [interimText, setInterimText] = useState(""); // live partial transcript
 
   const onResultRef = useRef(onResult);
   const langRef = useRef(lang);
@@ -52,20 +53,17 @@ export default function VoiceButton({
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   useEffect(() => { langRef.current = lang; }, [lang]);
 
-  // Check server ASR status on mount
+  // Check server ASR status on mount (for info only — webspeech is preferred)
   useEffect(() => {
     api.asrStatus()
       .then((status) => {
         setServerStatus(status);
-        if (status?.available && status.engine === "faster-whisper") {
+        // Keep webspeech as default if available; only fall back to server if no webspeech
+        if (!hasWebSpeech() && status?.available) {
           setEngineMode("server");
-        } else if (hasWebSpeech()) {
-          setEngineMode("webspeech");
         }
       })
-      .catch(() => {
-        if (hasWebSpeech()) setEngineMode("webspeech");
-      });
+      .catch(() => { /* server offline — webspeech still works */ });
   }, []);
 
   // Web Speech instance setup
@@ -74,19 +72,41 @@ export default function VoiceButton({
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
-    rec.interimResults = false;
+    rec.interimResults = true;  // enable live partial transcripts
     rec.maxAlternatives = 1;
     rec.continuous = false;
 
     rec.onresult = (e) => {
-      const alt = e.results[0][0];
-      const conf = typeof alt.confidence === "number" && alt.confidence > 0 ? alt.confidence : 0.88;
-      const text = (alt.transcript || "").trim();
-      setListening(false);
-      listeningRef.current = false;
-      setErrorMsg(null);
-      setLastHeard({ text, conf, engine: "Web Speech" });
-      onResultRef.current(text, conf);
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const segment = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          finalTranscript += segment;
+        } else {
+          interimTranscript += segment;
+        }
+      }
+
+      // Show live partial text while user is speaking
+      if (interimTranscript) {
+        setInterimText(interimTranscript);
+      }
+
+      if (finalTranscript) {
+        const text = finalTranscript.trim();
+        const conf = typeof e.results[e.results.length - 1][0].confidence === "number"
+          && e.results[e.results.length - 1][0].confidence > 0
+          ? e.results[e.results.length - 1][0].confidence
+          : 0.88;
+        setInterimText("");
+        setListening(false);
+        listeningRef.current = false;
+        setErrorMsg(null);
+        setLastHeard({ text, conf, engine: "Browser Web Speech" });
+        onResultRef.current(text, conf);
+      }
     };
 
     rec.onerror = (e) => {
@@ -110,11 +130,12 @@ export default function VoiceButton({
     rec.onend = () => {
       setListening(false);
       listeningRef.current = false;
+      setInterimText("");
     };
 
     srRef.current = rec;
     return () => {
-      try { rec.abort(); } catch (_) {}
+      try { rec.abort(); } catch (_) { }
     };
   }, []);
 
@@ -135,7 +156,7 @@ export default function VoiceButton({
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
-      
+
       if (ctx.state === "suspended") {
         ctx.resume();
       }
@@ -200,7 +221,7 @@ export default function VoiceButton({
       vadFrameRef.current = null;
     }
     if (audioCtxRef.current) {
-      try { audioCtxRef.current.close(); } catch (_) {}
+      try { audioCtxRef.current.close(); } catch (_) { }
       audioCtxRef.current = null;
     }
     setAudioLevel(0);
@@ -298,7 +319,7 @@ export default function VoiceButton({
     stopVAD();
     const rec = mediaRecRef.current;
     if (rec && rec.state === "recording") {
-      try { rec.stop(); } catch (_) {}
+      try { rec.stop(); } catch (_) { }
     }
   }
 
@@ -324,7 +345,7 @@ export default function VoiceButton({
   }
 
   function stopWebSpeech() {
-    try { srRef.current?.stop(); } catch (_) {}
+    try { srRef.current?.stop(); } catch (_) { }
     setListening(false);
     listeningRef.current = false;
   }
@@ -349,7 +370,7 @@ export default function VoiceButton({
 
   function stopAll() {
     stopMedia();
-    try { srRef.current?.abort(); } catch (_) {}
+    try { srRef.current?.abort(); } catch (_) { }
     setListening(false);
     listeningRef.current = false;
     setProcessing(false);
@@ -372,13 +393,12 @@ export default function VoiceButton({
         type="button"
         onClick={toggle}
         disabled={disabled || processing}
-        className={`w-full rounded-2xl py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-md flex items-center justify-center gap-3 relative overflow-hidden ${
-          processing
+        className={`w-full rounded-2xl py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-md flex items-center justify-center gap-3 relative overflow-hidden ${processing
             ? "bg-slate-700 cursor-wait"
             : listening
-            ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
-            : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
-        } disabled:opacity-50`}
+              ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
+              : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
+          } disabled:opacity-50`}
       >
         {/* Live Audio Level Wave / Glow Background */}
         {listening && audioLevel > 0 && (
@@ -396,8 +416,8 @@ export default function VoiceButton({
           {processing
             ? t(lang, "asrProcessing")
             : listening
-            ? `${t(lang, "listening")} (Tap to finish)`
-            : t(lang, "speak")}
+              ? `${t(lang, "listening")} (Tap to finish)`
+              : t(lang, "speak")}
         </span>
 
         {/* Live sound level bars when recording */}
@@ -417,34 +437,40 @@ export default function VoiceButton({
         )}
       </button>
 
+      {/* Live Interim Transcript Bubble (Web Speech only) */}
+      {listening && interimText && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-sm text-indigo-800 italic animate-pulse flex items-center gap-2">
+          <span className="text-base">💬</span>
+          <span>{interimText}<span className="inline-block w-1 h-3 bg-indigo-500 ml-1 animate-ping rounded-sm" /></span>
+        </div>
+      )}
+
       {/* Engine & Mode Switcher Bar */}
       <div className="flex items-center justify-between text-xs text-slate-500 px-1 flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
           <span className="font-semibold text-slate-600">Engine:</span>
-          <button
-            type="button"
-            onClick={() => setEngineMode("server")}
-            className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${
-              engineMode === "server"
-                ? "bg-teal-700 text-white font-bold shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            🚀 Server Whisper ({serverStatus?.model || "tiny"})
-          </button>
           {hasWebSpeech() && (
             <button
               type="button"
               onClick={() => setEngineMode("webspeech")}
-              className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${
-                engineMode === "webspeech"
+              className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "webspeech"
                   ? "bg-indigo-700 text-white font-bold shadow-sm"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+                }`}
             >
               🌐 Browser Web Speech
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setEngineMode("server")}
+            className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "server"
+                ? "bg-teal-700 text-white font-bold shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+          >
+            🚀 Server Whisper ({serverStatus?.model || "tiny"})
+          </button>
         </div>
 
         {onAutoVoiceToggle && (
