@@ -43,7 +43,7 @@ def test_health_reports_asr_engine():
 
     client = TestClient(app)
     body = client.get("/health").json()
-    assert body["asr_engine"] in {"stub", "faster-whisper"}
+    assert body["asr_engine"] in {"stub", "indicwhisper", "faster-whisper"}
     assert asr_engine.active_engine() == body["asr_engine"]
 
 
