@@ -241,11 +241,12 @@ def transcribe_audio(
         model = _get_model()
         # VAD disabled on server: the browser frontend already handles silence detection.
         # Initial prompt primes the decoder with common clinical terms for higher accuracy.
-        initial_prompt = (
-            "मरीज़, सीने में दर्द, सांस लेने में तकलीफ, बुखार, खांसी, सिरदर्द, उल्टी, दवा, एलर्जी"
-            if lang_code == "hi"
-            else "Patient presenting with chest pain, shortness of breath, cough, fever, headache, nausea, allergy, medication, days, severity."
-        )
+        if lang_code == "hi":
+            initial_prompt = "मरीज़, सीने में दर्द, सांस लेने में तकलीफ, बुखार, खांसी, सिरदर्द, उल्टी, दवा, एलर्जी"
+        elif lang_code == "as":
+            initial_prompt = "মৰীজ, বুকুত বিষ, উশাহ লওঁতে কষ্ট, জ্বৰ, কাহ, মূৰৰ বিষ, বমি, পেটৰ বিষ, ঔষধ, এলাৰ্জী"
+        else:
+            initial_prompt = "Patient presenting with chest pain, shortness of breath, cough, fever, headache, nausea, allergy, medication, days, severity."
 
         segments_gen, info = model.transcribe(
             tmp_path,

@@ -155,4 +155,5 @@ def _confirm_message(lang: str) -> str:
     return {
         "en": "I didn't catch that clearly. Please say it again, or tap an option below.",
         "hi": "मुझे ठीक से समझ नहीं आया। कृपया दोबारा बोलें, या नीचे विकल्प चुनें।",
+        "as": "মই স্পষ্টকৈ বুজি নাপালোঁ। অনুগ্ৰহ কৰি পুনৰ কওক, বা তলৰ বিকল্প বাছক।",
     }.get(lang, "I didn't catch that clearly. Please repeat, or tap an option.")
