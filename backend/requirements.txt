@@ -1,3 +1,5 @@
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
 # Core (needed to run the demo). Kept minimal so `pip install` is fast and reliable.
 fastapi>=0.110
 uvicorn[standard]>=0.29
