@@ -10,13 +10,6 @@ function hasWebSpeech() {
   return Boolean(typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition));
 }
 
-function isSecureSpeechContext() {
-  if (typeof window === "undefined") return false;
-  return window.isSecureContext || window.location.protocol === "https:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-}
-
-const FORCE_SERVER_ASR = String(import.meta.env.VITE_USE_SERVER_ASR || "").toLowerCase() === "1" || String(import.meta.env.VITE_USE_SERVER_ASR || "").toLowerCase() === "true";
-
 // Preferred recording mime types in priority order
 const PREFERRED_MIMES = [
   "audio/webm;codecs=opus",
@@ -40,7 +33,11 @@ export default function VoiceButton({
   const [errorMsg, setErrorMsg] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0); // 0 to 100 for live meter
   const [lastHeard, setLastHeard] = useState(null);
-  const [engineMode, setEngineMode] = useState(() => FORCE_SERVER_ASR ? "server" : "server");
+  // Default to server-side Whisper ASR — Web Speech API requires a live
+  // connection to Google's servers and silently breaks in low/no-connectivity
+  // OPD environments. Server mode is the reliable, offline-capable default;
+  // Web Speech remains available as an explicit opt-in via the switcher below.
+  const [engineMode, setEngineMode] = useState("server"); // always default to your own pipeline
   const [serverStatus, setServerStatus] = useState(null);
   const [interimText, setInterimText] = useState(""); // live partial transcript
 
@@ -60,19 +57,20 @@ export default function VoiceButton({
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   useEffect(() => { langRef.current = lang; }, [lang]);
 
-  // Check server ASR status on mount (for info only — webspeech is preferred)
+  // Check server ASR status on mount (also used to surface model name in the UI)
   useEffect(() => {
     api.asrStatus()
       .then((status) => {
         setServerStatus(status);
-        if (status?.available) {
-          setEngineMode("server");
-        } else if (hasWebSpeech() && isSecureSpeechContext()) {
+        // If server ASR isn't actually available, fall back to Web Speech
+        // (if the browser supports it) rather than leaving the user stuck.
+        if (!status?.available && hasWebSpeech()) {
           setEngineMode("webspeech");
         }
       })
       .catch(() => {
-        if (hasWebSpeech() && isSecureSpeechContext()) {
+        // Server offline/unreachable — fall back to Web Speech if available.
+        if (hasWebSpeech()) {
           setEngineMode("webspeech");
         }
       });
@@ -80,18 +78,7 @@ export default function VoiceButton({
 
   // Web Speech instance setup
   useEffect(() => {
-    if (!hasWebSpeech()) {
-      if (!FORCE_SERVER_ASR) {
-        setErrorMsg(t(langRef.current, "voiceUnsupported"));
-      }
-      return;
-    }
-
-    if (!isSecureSpeechContext()) {
-      setErrorMsg(t(langRef.current, "voiceUnsupported"));
-      setEngineMode("server");
-      return;
-    }
+    if (!hasWebSpeech()) return;
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
@@ -173,7 +160,7 @@ export default function VoiceButton({
   // Clean up on unmount
   useEffect(() => () => stopAll(), []);
 
-  // ── Audio Context & Live Visualizer / VAD ──────────────────────────────────
+  // ── Audio Context & Live Visualizer / VAD ──────────────────────────────
   function startVAD(stream) {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -250,7 +237,7 @@ export default function VoiceButton({
     setAudioLevel(0);
   }
 
-  // ── Server ASR MediaRecorder Path (faster-whisper) ──────────────────────────
+  // ── Server ASR MediaRecorder Path (faster-whisper) ──────────────────────
   async function startServerCapture() {
     if (listeningRef.current || processing) return;
     listeningRef.current = true;
@@ -346,17 +333,8 @@ export default function VoiceButton({
     }
   }
 
-  // ── Web Speech API Path ───────────────────────────────────────────────────
+  // ── Web Speech API Path ─────────────────────────────────────────────────
   function startWebSpeech() {
-    if (!hasWebSpeech() || !isSecureSpeechContext()) {
-      setEngineMode("server");
-      setErrorMsg(t(langRef.current, "voiceUnsupported"));
-      if (navigator.mediaDevices?.getUserMedia) {
-        startServerCapture();
-      }
-      return;
-    }
-
     if (!srRef.current) {
       setEngineMode("server");
       startServerCapture();
@@ -372,11 +350,7 @@ export default function VoiceButton({
       console.warn("[VoiceButton] Web Speech start error:", e);
       // Fallback to server
       setEngineMode("server");
-      if (navigator.mediaDevices?.getUserMedia) {
-        startServerCapture();
-      } else {
-        setErrorMsg(t(langRef.current, "voiceUnsupported"));
-      }
+      startServerCapture();
     }
   }
 
@@ -386,7 +360,7 @@ export default function VoiceButton({
     listeningRef.current = false;
   }
 
-  // ── Unified Controls ──────────────────────────────────────────────────────
+  // ── Unified Controls ─────────────────────────────────────────────────────
   function startRecording() {
     if (disabled || processing) return;
     if (engineMode === "webspeech") {
@@ -430,10 +404,10 @@ export default function VoiceButton({
         onClick={toggle}
         disabled={disabled || processing}
         className={`w-full rounded-2xl py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-md flex items-center justify-center gap-3 relative overflow-hidden ${processing
-            ? "bg-slate-700 cursor-wait"
-            : listening
-              ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
-              : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
+          ? "bg-slate-700 cursor-wait"
+          : listening
+            ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
+            : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
           } disabled:opacity-50`}
       >
         {/* Live Audio Level Wave / Glow Background */}
@@ -490,8 +464,8 @@ export default function VoiceButton({
               type="button"
               onClick={() => setEngineMode("webspeech")}
               className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "webspeech"
-                  ? "bg-indigo-700 text-white font-bold shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-indigo-700 text-white font-bold shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
             >
               🌐 Browser Web Speech
@@ -501,8 +475,8 @@ export default function VoiceButton({
             type="button"
             onClick={() => setEngineMode("server")}
             className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "server"
-                ? "bg-teal-700 text-white font-bold shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-teal-700 text-white font-bold shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
           >
             🚀 Server Whisper ({serverStatus?.model || "tiny"})
@@ -517,7 +491,7 @@ export default function VoiceButton({
               onChange={(e) => onAutoVoiceToggle(e.target.checked)}
               className="accent-teal-600 rounded"
             />
-            <span>{lang === "hi" ? "माइक स्वतः शुरू करें" : "Auto-listen next question"}</span>
+            <span>{lang === "hi" ? "अगले सवाल पर स्वतः सुनें" : "Auto-listen next question"}</span>
           </label>
         )}
       </div>
@@ -528,7 +502,7 @@ export default function VoiceButton({
           <div className="flex items-center gap-2">
             <span>🗣️</span>
             <span>
-              Heard: <b>“{lastHeard.text}”</b>
+              Heard: <b>"{lastHeard.text}"</b>
             </span>
           </div>
           <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-emerald-300 font-bold text-emerald-800">
