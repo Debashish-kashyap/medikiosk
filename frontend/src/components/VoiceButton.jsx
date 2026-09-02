@@ -27,6 +27,9 @@ export default function VoiceButton({
   onAutoVoiceToggle,
   onResult,
   disabled,
+  isSpeaking = false,
+  onSkipTTS,
+  listenSignal,
 }) {
   const [listening, setListening] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -149,13 +152,19 @@ export default function VoiceButton({
     };
   }, []);
 
-  // Auto-voice trigger on question change
+  // Safety: if TTS starts while microphone is open, stop recording immediately
   useEffect(() => {
-    if (autoVoice && !disabled) {
-      const id = setTimeout(() => startRecording(), 400);
-      return () => clearTimeout(id);
+    if (isSpeaking && listeningRef.current) {
+      stopAll();
     }
-  }, [questionId]);
+  }, [isSpeaking]);
+
+  // Turn-based listening trigger: start recording only AFTER TTS completes
+  useEffect(() => {
+    if (listenSignal && !disabled && !isSpeaking) {
+      startRecording();
+    }
+  }, [listenSignal]);
 
   // Clean up on unmount
   useEffect(() => () => stopAll(), []);
@@ -362,7 +371,7 @@ export default function VoiceButton({
 
   // ── Unified Controls ─────────────────────────────────────────────────────
   function startRecording() {
-    if (disabled || processing) return;
+    if (disabled || processing || isSpeaking) return;
     if (engineMode === "webspeech") {
       startWebSpeech();
     } else {
@@ -389,6 +398,12 @@ export default function VoiceButton({
 
   function toggle() {
     if (disabled || processing) return;
+    if (isSpeaking) {
+      if (onSkipTTS) {
+        onSkipTTS();
+      }
+      return;
+    }
     if (listening) {
       stopRecording();
     } else {
@@ -405,9 +420,11 @@ export default function VoiceButton({
         disabled={disabled || processing}
         className={`w-full rounded-2xl py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-md flex items-center justify-center gap-3 relative overflow-hidden ${processing
           ? "bg-slate-700 cursor-wait"
-          : listening
-            ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
-            : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
+          : isSpeaking
+            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 ring-4 ring-amber-300 shadow-lg cursor-pointer"
+            : listening
+              ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
+              : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
           } disabled:opacity-50`}
       >
         {/* Live Audio Level Wave / Glow Background */}
@@ -419,15 +436,17 @@ export default function VoiceButton({
         )}
 
         <span className="text-2xl relative z-10">
-          {processing ? "🧠" : listening ? "🔴" : "🎤"}
+          {processing ? "🧠" : isSpeaking ? "🔊" : listening ? "🔴" : "🎤"}
         </span>
 
         <span className="relative z-10 tracking-wide">
           {processing
             ? t(lang, "asrProcessing")
-            : listening
-              ? `${t(lang, "listening")} (Tap to finish)`
-              : t(lang, "speak")}
+            : isSpeaking
+              ? t(lang, "kioskSpeaking")
+              : listening
+                ? `${t(lang, "listening")} (Tap to finish)`
+                : t(lang, "speak")}
         </span>
 
         {/* Live sound level bars when recording */}
@@ -440,6 +459,23 @@ export default function VoiceButton({
                 style={{
                   height: `${Math.max(4, (audioLevel / 100) * h)}px`,
                   opacity: audioLevel > 5 ? 1 : 0.4,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Animated sound bars when Kiosk is speaking */}
+        {isSpeaking && (
+          <div className="flex items-center gap-1 h-5 relative z-10 ml-2">
+            {[50, 90, 70, 100, 60].map((h, i) => (
+              <span
+                key={i}
+                className="w-1 bg-white rounded-full animate-pulse"
+                style={{
+                  height: `${h}%`,
+                  animationDelay: `${i * 120}ms`,
+                  animationDuration: "800ms",
                 }}
               />
             ))}

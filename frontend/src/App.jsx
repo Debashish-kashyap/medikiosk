@@ -19,7 +19,7 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [autoVoice, setAutoVoice] = useState(false);
+  const [autoVoice, setAutoVoice] = useState(true);
 
   function chooseLanguage(code) {
     setLang(code);
