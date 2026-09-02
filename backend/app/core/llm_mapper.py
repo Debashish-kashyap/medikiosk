@@ -314,64 +314,150 @@ def _llm_interpret(node: dict, text: str, lang: str) -> dict:
     return {"value": None, "confidence": 0.3, "method": "llm-failed"}
 
 
-def phrase_hpi(narrative_fields: dict[str, Any], lang: str = "en") -> str:
-    """Phrase the History of Present Illness from verified fields."""
+def phrase_hpi(
+    narrative_fields: dict[str, Any],
+    lang: str = "en",
+    answer_meta: dict[str, Any] | None = None,
+) -> str:
+    """Phrase the History of Present Illness from verified fields and voice transcripts."""
     if USE_LLM or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
         try:
-            return _llm_phrase(narrative_fields, lang)
+            return _llm_phrase(narrative_fields, lang, answer_meta)
         except Exception:
             pass
-    return _template_hpi(narrative_fields)
+    return _template_hpi(narrative_fields, answer_meta)
 
 
-def _template_hpi(f: dict[str, Any]) -> str:
+def _template_hpi(f: dict[str, Any], answer_meta: dict[str, Any] | None = None) -> str:
+    """Construct a detailed clinical HPI paragraph from structured fields and voice transcripts."""
     cc = f.get("chief_complaint")
+    sentences = []
+
+    # 1. Primary complaint narrative
     if cc == "chest_pain":
-        parts = ["Patient reports chest pain"]
+        parts = ["Patient presents with chest pain"]
         if f.get("cp_site"):
-            parts.append(f"located {f['cp_site'].replace('_', ' ')}")
+            parts.append(f"located in the {f['cp_site'].replace('_', ' ')}")
         if f.get("cp_character"):
-            parts.append(f"{f['cp_character']} in character")
+            parts.append(f"described as {f['cp_character'].replace('_', ' ')}")
         if f.get("cp_onset"):
-            parts.append(f"onset {f['cp_onset'].replace('_', ' ')}")
+            onset_str = {
+                "under_1h": "started less than 1 hour ago",
+                "today": "started earlier today",
+                "few_days": "present for a few days",
+                "over_week": "present for more than a week",
+            }.get(f["cp_onset"], f"onset {f['cp_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
         if f.get("cp_radiation") and f["cp_radiation"] != "no":
-            parts.append(f"radiating to {f['cp_radiation'].replace('_', ' ')}")
+            parts.append(f"radiating to the {f['cp_radiation'].replace('_', ' ')}")
         assoc = []
         if f.get("cp_breathless") == "yes":
-            assoc.append("breathlessness")
+            assoc.append("dyspnea")
         if f.get("cp_sweating") == "yes":
-            assoc.append("sweating")
+            assoc.append("diaphoresis")
         if assoc:
             parts.append("associated with " + " and ".join(assoc))
         if f.get("cp_severity") is not None:
-            parts.append(f"severity {f['cp_severity']}/10")
-        return ", ".join(parts) + "."
-    if cc == "fever":
-        parts = ["Patient reports fever"]
+            parts.append(f"rated at {f['cp_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
+
+    elif cc == "fever":
+        parts = ["Patient presents with fever"]
         if f.get("fever_onset"):
-            parts.append(f"onset {f['fever_onset'].replace('_', ' ')}")
+            onset_str = {
+                "under_1h": "started less than 1 hour ago",
+                "today": "started earlier today",
+                "few_days": "persisting for a few days",
+                "over_week": "persisting for over a week",
+            }.get(f["fever_onset"], f"onset {f['fever_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
         if f.get("fever_grade"):
-            parts.append(f"{f['fever_grade'].replace('_', ' ')}")
+            grade_str = {
+                "high": "documented as high grade",
+                "moderate": "documented as moderate grade",
+                "mild": "documented as low grade",
+                "with_chills": "associated with chills and rigors",
+            }.get(f["fever_grade"], f"{f['fever_grade'].replace('_', ' ')}")
+            parts.append(grade_str)
         assoc = f.get("fever_assoc")
         if isinstance(assoc, list) and assoc and "none" not in assoc:
-            parts.append("with " + ", ".join(a.replace("_", " ") for a in assoc))
-        return ", ".join(parts) + "."
-    return "Patient presents with the above chief complaint (see structured fields)."
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("associated with " + ", ".join(assoc_clean))
+        sentences.append(", ".join(parts) + ".")
+
+    elif cc == "cough":
+        sentences.append("Patient presents with cough and respiratory symptoms.")
+
+    elif cc == "headache":
+        sentences.append("Patient presents with acute headache / cranial discomfort.")
+
+    elif cc == "abdominal_pain":
+        sentences.append("Patient presents with abdominal discomfort and pain.")
+
+    elif cc == "other":
+        sentences.append("Patient presents with general health complaints for clinical evaluation.")
+
+    elif cc:
+        sentences.append(f"Patient presents with chief complaint of {str(cc).replace('_', ' ')}.")
+    else:
+        sentences.append("Patient presents for outpatient clinical evaluation.")
+
+    # 2. Add verbatim patient voice statements if captured
+    if answer_meta:
+        transcripts = []
+        for field, meta in answer_meta.items():
+            if isinstance(meta, dict) and meta.get("transcript"):
+                t = meta["transcript"].strip()
+                if t and len(t) > 2 and t not in transcripts:
+                    transcripts.append(t)
+        if transcripts:
+            combined_voice = '"; "'.join(transcripts)
+            sentences.append(f'Patient reported: "{combined_voice}".')
+
+    # 3. Past Medical History
+    past = f.get("past_history")
+    if past and isinstance(past, list) and "none" not in past and len(past) > 0:
+        past_str = ", ".join(p.replace("_", " ") for p in past)
+        sentences.append(f"Past medical history is notable for {past_str}.")
+    elif past == ["none"] or (isinstance(past, list) and "none" in past):
+        sentences.append("No prior chronic medical conditions reported.")
+
+    # 4. Drug Allergies
+    allergy = f.get("drug_allergy")
+    if allergy == "yes":
+        sentences.append("Patient reports positive drug allergy history (specific allergen verification required).")
+    elif allergy == "no":
+        sentences.append("No known drug allergies reported.")
+
+    return " ".join(sentences)
 
 
-def _llm_phrase(fields: dict[str, Any], lang: str) -> str:
+def _llm_phrase(
+    fields: dict[str, Any],
+    lang: str,
+    answer_meta: dict[str, Any] | None = None,
+) -> str:
     """Generate concise, professional clinical HPI narrative using Gemini."""
     import json
+    payload = {
+        "verified_answers": fields,
+    }
+    if answer_meta:
+        payload["patient_spoken_statements"] = {
+            k: v.get("transcript") for k, v in answer_meta.items() if isinstance(v, dict) and v.get("transcript")
+        }
+
     prompt = (
         f"You are a clinical documentation assistant for MediKiosk. Convert the following structured patient answers "
-        f"into a concise, accurate 2-3 sentence History of Present Illness (HPI) paragraph for the attending physician.\n"
+        f"and spoken statements into a concise, accurate, professional History of Present Illness (HPI) paragraph for the attending physician.\n"
         f"Rules:\n"
-        f"1. Rely ONLY on the verified fields provided below. Do not invent any unmentioned facts.\n"
-        f"2. Use professional medical terminology.\n"
-        f"3. Output ONLY the plain text paragraph.\n\n"
-        f"Patient answers:\n{json.dumps(fields, indent=2)}\n\n"
+        f"1. Rely ONLY on the verified fields and patient statements provided below. Do not invent unmentioned facts.\n"
+        f"2. Integrate chief complaint, onset, severity, associated symptoms, past medical history, and drug allergies into a coherent narrative.\n"
+        f"3. Use professional medical terminology.\n"
+        f"4. Output ONLY the plain text paragraph.\n\n"
+        f"Patient data:\n{json.dumps(payload, indent=2)}\n\n"
         f"Language requested: {lang}"
     )
     result = _call_gemini_text(prompt, temperature=0.2)
-    return result if result else _template_hpi(fields)
+    return result if result else _template_hpi(fields, answer_meta)
 

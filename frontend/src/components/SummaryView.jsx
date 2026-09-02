@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
 import AccessLogModal from "./AccessLogModal.jsx";
@@ -20,7 +20,7 @@ function getFileIcon(filename, type) {
 // T3 integration: Patient access log & privacy audit.
 export default function SummaryView({ lang, sessionId, summary, redFlags = [], onRestart }) {
   const [sum, setSum] = useState(summary || {});
-  const [initialHpi] = useState(summary?.hpi || "");
+  const [initialHpi, setInitialHpi] = useState(summary?.hpi || "");
   const [hpi, setHpi] = useState(summary?.hpi || "");
   const [isHpiEdited, setIsHpiEdited] = useState(false);
   const [hpiSavedTime, setHpiSavedTime] = useState(null);
@@ -30,6 +30,15 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
   const [copiedFhir, setCopiedFhir] = useState(false);
   const [showAccessLog, setShowAccessLog] = useState(false);
   const [activeTab, setActiveTab] = useState("clinical"); // "clinical" | "documents" | "fhir"
+
+  // Keep state in sync when summary prop updates
+  useEffect(() => {
+    if (summary) {
+      setSum(summary);
+      setHpi(summary.hpi || "");
+      setInitialHpi(summary.hpi || "");
+    }
+  }, [summary]);
 
   function handleHpiChange(e) {
     const val = e.target.value;
@@ -283,6 +292,40 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               )}
             </div>
           </div>
+
+          {/* Patient Voice Intake Transcripts (Verbatim Auditory Record) */}
+          {sum.voice_transcripts && sum.voice_transcripts.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🗣️</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Patient Voice Intake Record
+                  </span>
+                </div>
+                <span className="text-[10px] bg-teal-50 text-teal-800 px-2.5 py-0.5 rounded-full font-mono font-bold border border-teal-200">
+                  ASR Logged
+                </span>
+              </div>
+              <div className="space-y-2">
+                {sum.voice_transcripts.map((vt, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start justify-between gap-3 text-xs sm:text-sm">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
+                        {vt.field.replace(/_/g, " ")}
+                      </div>
+                      <div className="font-medium text-slate-800 italic">
+                        "{vt.transcript}"
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold bg-white text-emerald-800 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                      {Math.round(vt.confidence * 100)}% conf
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right 1 Col: Allergies, Medical History, Quick Vitals */}

@@ -18,8 +18,9 @@ from .ontology_loader import Ontology, load_ontology
 
 def build_summary(session: dict) -> dict:
     ont = load_ontology()
-    lang = session["language"]
-    answers = session["answers"]
+    lang = session.get("language", "en")
+    answers = session.get("answers", {})
+    answer_meta = session.get("answer_meta", {})
 
     def label(node_id: str, value: Any) -> Any:
         if isinstance(value, list):
@@ -41,9 +42,20 @@ def build_summary(session: dict) -> dict:
         "no": "No known drug allergy reported.",
     }.get(drug, "Not asked.")
 
+    # Extract all patient spoken transcripts
+    voice_transcripts = []
+    for field, meta in answer_meta.items():
+        if isinstance(meta, dict) and meta.get("transcript"):
+            voice_transcripts.append({
+                "field": field,
+                "transcript": meta["transcript"],
+                "confidence": meta.get("confidence", 1.0),
+                "source": meta.get("source", "voice"),
+            })
+
     summary = {
         "chief_complaint": chief or "Not captured",
-        "hpi": llm_mapper.phrase_hpi(answers, lang),
+        "hpi": llm_mapper.phrase_hpi(answers, lang, answer_meta=answer_meta),
         "past_medical": past_display,
         "drug_allergy": drug_display,
         "review_of_systems": _ros(answers),
@@ -51,6 +63,7 @@ def build_summary(session: dict) -> dict:
         "red_flags": session.get("red_flags", []),
         "contradictions": validation.detect_contradictions(answers),
         "raw_fields": answers,               # for the physician "show details" view
+        "voice_transcripts": voice_transcripts,
         "language": lang,
         "disclaimer": (
             "Draft generated from patient self-report and uploaded documents. "
