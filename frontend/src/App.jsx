@@ -60,9 +60,15 @@ export default function App() {
       setPendingConfirm(null);
       if (res.red_flags_all) setRedFlags(res.red_flags_all);
       if (res.done) {
-        const s = await api.summary(sessionId);
-        setSummary(s);
-        setPhase("summary");
+        setPhase("preparing_summary");
+        setQuestion(null);
+        try {
+          const s = await api.summary(sessionId);
+          setSummary(s);
+          setPhase("summary");
+        } catch (sumErr) {
+          setError(String(sumErr));
+        }
       } else {
         setQuestion(res.next_question);
       }
@@ -220,6 +226,18 @@ export default function App() {
             onConfirmYes={confirmYes}
             onConfirmNo={confirmNo}
           />
+        )}
+
+        {phase === "preparing_summary" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-10 text-center max-w-md mx-auto my-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-3xl animate-bounce-gentle">
+              ✨
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Compiling intake history, verified symptoms, and constitutional cues for the clinician.
+            </p>
+          </div>
         )}
 
         {phase === "dashboard" && summary && (
