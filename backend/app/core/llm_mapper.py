@@ -46,7 +46,20 @@ def interpret(node: dict, text: str, lang: str = "en") -> dict:
     if node.get("type") == "yes_no":
         return _interpret_yes_no(node, text_norm, lang)
 
-    # 3. Multi-select and Single-select matching
+    # 3. Free text nodes (direct voice/text capture + quick option matching)
+    if node.get("type") == "free_text":
+        quick_opts = node.get("quick_options", [])
+        for opt in quick_opts:
+            val = opt.get("value", "")
+            lbl = opt.get("label", {})
+            opt_texts = [val.lower(), val.replace("_", " ").lower()]
+            if isinstance(lbl, dict):
+                opt_texts.extend([str(v).lower() for v in lbl.values()])
+            if any(ot in text_norm for ot in opt_texts if ot):
+                return {"value": val, "confidence": 1.0, "method": "quick_option"}
+        return {"value": text.strip(), "confidence": 0.95, "method": "free_text"}
+
+    # 4. Multi-select and Single-select matching
     result = _interpret_aliases(node, text_norm, lang)
 
     # Optional real LLM only if aliases were ambiguous AND a model is configured.

@@ -21,11 +21,13 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def create_session(language: str = "en") -> dict:
+def create_session(language: str = "en", ayush_mode: bool = False) -> dict:
     sid = uuid.uuid4().hex
     session = {
         "id": sid,
         "language": language,
+        "ayush_mode": bool(ayush_mode),
+        "ayush_done": False,
         "current_node": None,          # set to entry on first /next
         "answers": {},                 # field -> value (str | list | int)
         "answer_meta": {},             # field -> {source, confidence, transcript}

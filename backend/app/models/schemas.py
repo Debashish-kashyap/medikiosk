@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class CreateSessionRequest(BaseModel):
     language: str = "en"
+    ayush_mode: bool = False
 
 
 class ConsentRequest(BaseModel):

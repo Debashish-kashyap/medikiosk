@@ -53,11 +53,25 @@ def build_summary(session: dict) -> dict:
                 "source": meta.get("source", "voice"),
             })
 
+    # AYUSH intake profile (Module AYUSH)
+    ayush_profile = None
+    if session.get("ayush_mode") or any(k.startswith("ayush_") for k in answers):
+        sleep_bowel = answers.get("ayush_vikriti_current")
+        sb_labels = label("ayush_sleep_bowel", sleep_bowel) if sleep_bowel else []
+        ayush_profile = {
+            "prakriti_cue": label("ayush_prakriti", answers.get("ayush_prakriti_cue")),
+            "ahara_shakti": label("ayush_agni", answers.get("ayush_ahara_shakti")),
+            "vikriti_current": sb_labels if isinstance(sb_labels, list) else ([sb_labels] if sb_labels else []),
+            "satmya": answers.get("ayush_satmya"),
+            "satva": label("ayush_satva", answers.get("ayush_satva")),
+        }
+
     summary = {
         "chief_complaint": chief or "Not captured",
         "hpi": llm_mapper.phrase_hpi(answers, lang, answer_meta=answer_meta),
         "past_medical": past_display,
         "drug_allergy": drug_display,
+        "ayush_profile": ayush_profile,
         "review_of_systems": _ros(answers),
         "prior_investigations": _documents_summary(session),
         "red_flags": session.get("red_flags", []),

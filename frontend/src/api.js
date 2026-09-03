@@ -27,8 +27,8 @@ async function req(path, opts = {}) {
 export const api = {
   base: BASE,
 
-  createSession: (language) =>
-    req("/api/session", { method: "POST", body: JSON.stringify({ language }) }),
+  createSession: (language, ayush_mode = false) =>
+    req("/api/session", { method: "POST", body: JSON.stringify({ language, ayush_mode }) }),
 
   giveConsent: (sid, given = true, abhaId = "", otp = "") =>
     req(`/api/session/${sid}/consent`, {
