@@ -11,6 +11,7 @@ import DoctorDashboard from "./components/DoctorDashboard.jsx";
 // Kiosk flow: language -> consent -> interview -> summary.
 export default function App() {
   const [lang, setLang] = useState("en");
+  const [ayushMode, setAyushMode] = useState(false);
   const [phase, setPhase] = useState("language");
   const [sessionId, setSessionId] = useState(null);
   const [question, setQuestion] = useState(null);
@@ -21,8 +22,9 @@ export default function App() {
   const [error, setError] = useState(null);
   const [autoVoice, setAutoVoice] = useState(true);
 
-  function chooseLanguage(code) {
+  function chooseLanguage(code, mode) {
     setLang(code);
+    if (typeof mode === "boolean") setAyushMode(mode);
     setPhase("consent");
   }
 
@@ -30,7 +32,7 @@ export default function App() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.createSession(lang);
+      const res = await api.createSession(lang, ayushMode);
       setSessionId(res.session_id);
       setQuestion(res.question);
       await api.giveConsent(res.session_id, true, abhaId, otp);
@@ -58,9 +60,15 @@ export default function App() {
       setPendingConfirm(null);
       if (res.red_flags_all) setRedFlags(res.red_flags_all);
       if (res.done) {
-        const s = await api.summary(sessionId);
-        setSummary(s);
-        setPhase("summary");
+        setPhase("preparing_summary");
+        setQuestion(null);
+        try {
+          const s = await api.summary(sessionId);
+          setSummary(s);
+          setPhase("summary");
+        } catch (sumErr) {
+          setError(String(sumErr));
+        }
       } else {
         setQuestion(res.next_question);
       }
@@ -81,7 +89,7 @@ export default function App() {
     try {
       let sid = sessionId;
       if (!sid) {
-        const sessionRes = await api.createSession(lang);
+        const sessionRes = await api.createSession(lang, ayushMode);
         sid = sessionRes.session_id;
         setSessionId(sid);
       }
@@ -146,9 +154,21 @@ export default function App() {
   return (
     <div className="min-h-full flex flex-col bg-slate-50 print:bg-white">
       <header className="bg-kiosk-primary text-white px-6 py-4 flex items-center justify-between shadow print:hidden">
-        <div>
-          <div className="text-2xl font-bold">{t(lang, "appTitle")}</div>
-          <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
+        <div className="flex items-center gap-4">
+          <div>
+            <div className="text-2xl font-bold">{t(lang, "appTitle")}</div>
+            <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
+          </div>
+          {phase !== "language" && (
+            <div className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
+              ayushMode
+                ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40"
+                : "bg-blue-500/20 text-blue-200 border-blue-400/40"
+            }`}>
+              <span>{ayushMode ? "🌿" : "🩺"}</span>
+              <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {phase !== "summary" && phase !== "dashboard" && (
@@ -181,7 +201,14 @@ export default function App() {
           </div>
         )}
 
-        {phase === "language" && <LanguageSelect lang={lang} onChoose={chooseLanguage} />}
+        {phase === "language" && (
+          <LanguageSelect
+            lang={lang}
+            ayushMode={ayushMode}
+            onToggleAyush={setAyushMode}
+            onChoose={chooseLanguage}
+          />
+        )}
 
         {phase === "consent" && (
           <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={() => setPhase("language")} />
@@ -199,6 +226,18 @@ export default function App() {
             onConfirmYes={confirmYes}
             onConfirmNo={confirmNo}
           />
+        )}
+
+        {phase === "preparing_summary" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-10 text-center max-w-md mx-auto my-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-3xl animate-bounce-gentle">
+              ✨
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Compiling intake history, verified symptoms, and constitutional cues for the clinician.
+            </p>
+          </div>
         )}
 
         {phase === "dashboard" && summary && (

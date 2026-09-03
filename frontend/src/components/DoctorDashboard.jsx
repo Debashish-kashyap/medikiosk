@@ -241,6 +241,29 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                 <p className="mt-1 text-sm text-slate-700">{selectedPatient?.complaint || chiefComplaint}</p>
               </div>
 
+              {summary?.ayush_profile && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">
+                    <span>🌿</span>
+                    <span>AYUSH Clinical Cues</span>
+                  </div>
+                  <div className="text-xs space-y-1 text-slate-800">
+                    {summary.ayush_profile.prakriti_cue && (
+                      <div><span className="font-semibold text-emerald-950">Prakriti:</span> {summary.ayush_profile.prakriti_cue}</div>
+                    )}
+                    {summary.ayush_profile.ahara_shakti && (
+                      <div><span className="font-semibold text-emerald-950">Agni:</span> {summary.ayush_profile.ahara_shakti}</div>
+                    )}
+                    {summary.ayush_profile.vikriti_current && summary.ayush_profile.vikriti_current.length > 0 && (
+                      <div><span className="font-semibold text-emerald-950">Sleep/Bowel:</span> {summary.ayush_profile.vikriti_current.join(", ")}</div>
+                    )}
+                    {summary.ayush_profile.satmya && (
+                      <div><span className="font-semibold text-emerald-950">Satmya:</span> {summary.ayush_profile.satmya}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{t(lang, "dashboardTriage")}</label>
                 <select

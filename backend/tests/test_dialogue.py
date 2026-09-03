@@ -54,3 +54,77 @@ def test_low_confidence_voice_requests_confirmation():
     r = _answer(session, "chief_complaint", text="mmmfff garbled noise", confidence=0.2)
     assert r["status"] == "needs_confirmation"
     assert "chief_complaint" not in session["answers"]
+
+
+def test_ayush_mode_full_flow():
+    # Session created with AYUSH mode enabled
+    session = session_store.create_session(language="en", ayush_mode=True)
+    q = dialogue_engine.current_question(session)
+    assert q["node_id"] == "chief_complaint"
+
+    # Cough branches to past_history in ontology, but with AYUSH mode routes to ayush_intro
+    r_cc = _answer(session, "chief_complaint", touch_value="cough")
+    assert r_cc["status"] == "accepted"
+    assert r_cc["next_question"]["node_id"] == "ayush_intro"
+    assert r_cc["next_question"]["type"] == "info_screen"
+    assert "cta" in r_cc["next_question"]
+    assert "skip_option" in r_cc["next_question"]
+
+    # Start AYUSH intake
+    r_intro = _answer(session, "ayush_intro", touch_value="start")
+    assert r_intro["next_question"]["node_id"] == "ayush_prakriti"
+
+    # Prakriti (body build)
+    r_prakriti = _answer(session, "ayush_prakriti", touch_value="pitta_leaning")
+    assert r_prakriti["next_question"]["node_id"] == "ayush_agni"
+
+    # Agni (digestion)
+    r_agni = _answer(session, "ayush_agni", touch_value="strong")
+    assert r_agni["next_question"]["node_id"] == "ayush_sleep_bowel"
+    assert r_agni["next_question"]["type"] == "multi_select"
+
+    # Sleep & Bowel (multi-select)
+    r_sb = _answer(session, "ayush_sleep_bowel", touch_value=["sleep_sound", "bowel_regular"])
+    assert r_sb["next_question"]["node_id"] == "ayush_satmya"
+    assert r_sb["next_question"]["type"] == "free_text"
+    assert len(r_sb["next_question"]["quick_options"]) >= 4
+
+    # Satmya (free text with quick chip)
+    r_satmya = _answer(session, "ayush_satmya", touch_value="dairy")
+    assert r_satmya["next_question"]["node_id"] == "ayush_satva"
+    assert r_satmya["next_question"]["optional"] is True
+
+    # Satva (stress / mental state)
+    r_satva = _answer(session, "ayush_satva", touch_value="calm_steady")
+    assert session["ayush_done"] is True
+    # Now routes to past_history tail
+    assert r_satva["next_question"]["node_id"] == "past_history"
+
+    # Shared past_history tail
+    r_past = _answer(session, "past_history", touch_value=["none"])
+    assert r_past["next_question"]["node_id"] == "drug_allergy"
+
+    r_end = _answer(session, "drug_allergy", touch_value="no")
+    assert r_end["done"] is True
+    assert session["status"] == "complete"
+
+    # Verify summary builder incorporates ayush_profile
+    from app.core import summary_builder
+    summary = summary_builder.build_summary(session)
+    assert summary["ayush_profile"] is not None
+    assert "Medium build" in summary["ayush_profile"]["prakriti_cue"]
+    assert "Strong" in summary["ayush_profile"]["ahara_shakti"]
+
+
+def test_ayush_mode_skip_option():
+    session = session_store.create_session(language="en", ayush_mode=True)
+    dialogue_engine.current_question(session)
+
+    r_cc = _answer(session, "chief_complaint", touch_value="cough")
+    assert r_cc["next_question"]["node_id"] == "ayush_intro"
+
+    # Patient chooses to skip AYUSH section
+    r_skip = _answer(session, "ayush_intro", touch_value="skip")
+    assert session["ayush_done"] is True
+    assert r_skip["next_question"]["node_id"] == "past_history"
+

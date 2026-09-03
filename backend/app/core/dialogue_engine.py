@@ -24,24 +24,39 @@ def render_question(node: dict, lang: str, ont: Ontology) -> dict:
     """Shape a node into the payload the kiosk renders (voice + touch)."""
     payload: dict[str, Any] = {
         "node_id": node["id"],
-        "field": node["field"],
+        "field": node.get("field"),
         "section": node.get("section"),
         "type": node["type"],
         "allow_voice": node.get("allow_voice", True),
+        "optional": node.get("optional", False),
         "prompt": ont.localize(node["prompt"], lang),
         "help": ont.localize(node["help"], lang) if node.get("help") else None,
     }
     if node["type"] == "scale":
         payload["scale_min"] = node.get("scale_min", 0)
         payload["scale_max"] = node.get("scale_max", 10)
+    elif node["type"] == "info_screen":
+        if "cta" in node:
+            payload["cta"] = ont.localize(node["cta"], lang)
+        if "skip_option" in node:
+            payload["skip_option"] = ont.localize(node["skip_option"], lang)
     else:
         payload["options"] = [
             {
                 "value": opt["value"],
                 "label": ont.localize(opt["label"], lang),
                 "icon": opt.get("icon"),
+                "group": opt.get("group"),
             }
             for opt in node.get("options", [])
+        ]
+    if "quick_options" in node:
+        payload["quick_options"] = [
+            {
+                "value": opt["value"],
+                "label": ont.localize(opt["label"], lang),
+            }
+            for opt in node["quick_options"]
         ]
     return payload
 
@@ -57,13 +72,36 @@ def current_question(session: dict) -> dict | None:
     return render_question(node, session["language"], ont) if node else None
 
 
-def _next_node_id(node: dict, value: Any) -> str:
-    """Resolve branch: option-level 'next' beats node-level 'next'. 'END' finishes."""
+def _next_node_id(node: dict, value: Any, session: dict | None = None) -> str:
+    """Resolve branch: option-level 'next' beats node-level 'next'. Handles AYUSH router flow."""
+    # Special case: info screen (ayush_intro)
+    if node.get("id") == "ayush_intro":
+        if value in ("skip", "skip_section", False):
+            if session is not None:
+                session["ayush_done"] = True
+            return "past_history"
+        return node.get("next", "ayush_prakriti")
+
+    # Special case: end of AYUSH sequence
+    if node.get("id") == "ayush_satva":
+        if session is not None:
+            session["ayush_done"] = True
+        return "past_history"
+
+    nxt = None
     if not isinstance(value, list):
         for opt in node.get("options", []):
             if opt["value"] == value and opt.get("next"):
-                return opt["next"]
-    return node.get("next", "END")
+                nxt = opt["next"]
+                break
+    if nxt is None:
+        nxt = node.get("next", "END")
+
+    # Seamless router injection: if routing to past_history and AYUSH mode is active & not yet done
+    if nxt == "past_history" and session and session.get("ayush_mode") and not session.get("ayush_done"):
+        return "ayush_intro"
+
+    return nxt or "END"
 
 
 def process_answer(
@@ -83,7 +121,10 @@ def process_answer(
     lang = session["language"]
 
     # --- Resolve the value + provenance ------------------------------------
-    if touch_value is not None:
+    if node["type"] == "info_screen":
+        value = touch_value if touch_value is not None else "start"
+        conf, source, method = 1.0, "touch", "touch"
+    elif touch_value is not None:
         value, conf, source = touch_value, 1.0, "touch"
         method = "touch"
     elif text is not None:
@@ -108,13 +149,14 @@ def process_answer(
         }
 
     # --- Store (validated) --------------------------------------------------
-    session["answers"][node["field"]] = value
-    session["answer_meta"][node["field"]] = {
-        "source": source,
-        "confidence": round(conf, 2),
-        "method": method,
-        "transcript": text,
-    }
+    if node.get("field"):
+        session["answers"][node["field"]] = value
+        session["answer_meta"][node["field"]] = {
+            "source": source,
+            "confidence": round(conf, 2),
+            "method": method,
+            "transcript": text,
+        }
     session["current_node"] = node_id  # normalise
 
     # --- Red-flag safety layer (rules, not LLM) -----------------------------
@@ -124,7 +166,7 @@ def process_answer(
     newly_fired = [f for f in fired if f["id"] not in prev_ids]
 
     # --- Advance ------------------------------------------------------------
-    nxt = _next_node_id(node, value)
+    nxt = _next_node_id(node, value, session)
     done = nxt == "END" or nxt is None
     session["current_node"] = "END" if done else nxt
     if done:
@@ -133,7 +175,7 @@ def process_answer(
     next_q = None if done else render_question(ont.get_node(nxt), lang, ont)
     return {
         "status": "accepted",
-        "stored": {"field": node["field"], "value": value},
+        "stored": {"field": node.get("field"), "value": value},
         "red_flags_new": newly_fired,
         "red_flags_all": fired,
         "done": done,

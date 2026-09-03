@@ -499,6 +499,283 @@
         }
       ],
       "next": "END"
+    },
+
+    "ayush_intro": {
+      "id": "ayush_intro",
+      "field": null,
+      "section": "ayush",
+      "type": "info_screen",
+      "allow_voice": false,
+      "prompt": {
+        "en": "You've chosen an AYUSH consultation. A few extra questions help your vaidya understand your constitution and current balance — this takes about 60–90 seconds.",
+        "hi": "आपने आयुष परामर्श चुना है। कुछ अतिरिक्त सवाल आपके वैद्य को आपकी प्रकृति और वर्तमान संतुलन समझने में मदद करेंगे — इसमें लगभग 60–90 सेकंड लगेंगे।",
+        "as": "আপুনি আয়ুষ পৰামৰ্শ বাছি লৈছে। কিছুমান অতিৰিক্ত প্ৰশ্নই আপোনাৰ বৈদ্যক আপোনাৰ প্ৰকৃতি আৰু বৰ্তমানৰ সন্তুলন বুজাত সহায় কৰিব — ইয়াত প্ৰায় ৬০–৯০ ছেকেণ্ড লাগিব।"
+      },
+      "help": {
+        "en": "These questions don't replace your vaidya's examination — they simply save time so your consultation can focus on you.",
+        "hi": "ये सवाल आपके वैद्य की जांच का विकल्प नहीं हैं — ये सिर्फ समय बचाते हैं ताकि परामर्श आप पर केंद्रित रह सके।",
+        "as": "এই প্ৰশ্নবোৰে আপোনাৰ বৈদ্যৰ পৰীক্ষাৰ পৰিবৰ্তে নহয় — ই কেৱল সময় ৰাখি থয় যাতে পৰামৰ্শটো আপোনাতে কেন্দ্ৰীভূত হৈ থাকে।"
+      },
+      "cta": {
+        "en": "Start",
+        "hi": "शुरू करें",
+        "as": "আৰম্ভ কৰক"
+      },
+      "skip_option": {
+        "en": "Skip this section",
+        "hi": "यह भाग छोड़ें",
+        "as": "এই খণ্ড এৰি যাওক"
+      },
+      "next": "ayush_prakriti"
+    },
+
+    "ayush_prakriti": {
+      "id": "ayush_prakriti",
+      "field": "ayush_prakriti_cue",
+      "section": "ayush",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Which best describes your body build and appetite?",
+        "hi": "आपके शरीर की बनावट और भूख को कौन सा विकल्प सबसे अच्छे से बताता है?",
+        "as": "আপোনাৰ শৰীৰৰ গঠন আৰু ভোক কোনটোৱে সবচেয়ে ভালদৰে বৰ্ণনা কৰে?"
+      },
+      "help": {
+        "en": "This is a preliminary cue only — the vaidya will confirm your Prakriti in person.",
+        "hi": "यह केवल एक प्रारंभिक संकेत है — वैद्य आपसे मिलकर आपकी प्रकृति की पुष्टि करेंगे।",
+        "as": "এইটো কেৱল প্ৰাথমিক ইংগিত — বৈদ্যই সাক্ষাতে আপোনাৰ প্ৰকৃতি নিশ্চিত কৰিব।"
+      },
+      "options": [
+        {
+          "value": "vata_leaning",
+          "label": {
+            "en": "Thin build, feels cold easily, variable appetite",
+            "hi": "पतला शरीर, जल्दी ठंड लगती है, भूख अनियमित",
+            "as": "পাতল গঠন, সহজে জাৰ লাগে, ভোক অনিয়মীয়া"
+          },
+          "icon": "wind",
+          "aliases": ["thin", "cold", "variable appetite", "patla", "thanda lagta hai", "patol", "jaar lage"]
+        },
+        {
+          "value": "pitta_leaning",
+          "label": {
+            "en": "Medium build, strong appetite, tends to feel warm",
+            "hi": "मध्यम शरीर, तेज़ भूख, गर्मी ज़्यादा लगती है",
+            "as": "মধ্যম গঠন, শক্তিশালী ভোক, গৰম বেছি লাগে"
+          },
+          "icon": "flame",
+          "aliases": ["medium build", "strong appetite", "warm", "garam lagta hai", "tez bhookh", "gorom lage"]
+        },
+        {
+          "value": "kapha_leaning",
+          "label": {
+            "en": "Solid build, steady appetite, gains weight easily",
+            "hi": "मज़बूत शरीर, स्थिर भूख, वज़न जल्दी बढ़ता है",
+            "as": "টান গঠন, স্থিৰ ভোক, ওজন সহজে বৃদ্ধি পায়"
+          },
+          "icon": "shield",
+          "aliases": ["solid build", "steady appetite", "weight gain", "mota", "wazan badhta hai", "bhori diye"]
+        },
+        {
+          "value": "not_sure",
+          "label": {
+            "en": "Not sure",
+            "hi": "पता नहीं",
+            "as": "নিশ্চিত নহয়"
+          },
+          "icon": "help-circle",
+          "aliases": ["not sure", "pata nahi", "malum nahi", "najanu"]
+        }
+      ],
+      "next": "ayush_agni"
+    },
+
+    "ayush_agni": {
+      "id": "ayush_agni",
+      "field": "ayush_ahara_shakti",
+      "section": "ayush",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "How would you describe your digestion most days?",
+        "hi": "ज़्यादातर दिनों में आपका पाचन कैसा रहता है?",
+        "as": "বেছিভাগ দিনত আপোনাৰ পাচন কেনেকুৱা থাকে?"
+      },
+      "options": [
+        {
+          "value": "irregular",
+          "label": {
+            "en": "Irregular — sometimes bloated, sometimes fine",
+            "hi": "अनियमित — कभी पेट फूला, कभी ठीक",
+            "as": "অনিয়মীয়া — কেতিয়াবা পেট ফুলে, কেতিয়াবা ঠিক"
+          },
+          "icon": "activity",
+          "aliases": ["irregular digestion", "bloating", "gas weekly", "pet phoolta hai", "kobhi thik kobhi kharab"]
+        },
+        {
+          "value": "strong",
+          "label": {
+            "en": "Strong / sharp — hungry often, digests fast",
+            "hi": "तेज़ — बार-बार भूख लगती है, जल्दी पचता है",
+            "as": "শক্তিশালী — সঘনাই ভোক লাগে, সোনকালে হজম হয়"
+          },
+          "icon": "zap",
+          "aliases": ["strong digestion", "hungry often", "fast digestion", "tez bhookh", "jaldi bhookh lagti hai"]
+        },
+        {
+          "value": "slow_heavy",
+          "label": {
+            "en": "Slow / heavy — feels full a long time, sluggish",
+            "hi": "धीमा / भारी — देर तक पेट भरा लगता है",
+            "as": "লাহে / গধুৰ — বহু সময় পেট ভৰি থকা যেন লাগে"
+          },
+          "icon": "battery-low",
+          "aliases": ["slow digestion", "heavy stomach", "sluggish", "pet bhaari lagta hai"]
+        },
+        {
+          "value": "currently_disturbed",
+          "label": {
+            "en": "Currently disturbed (nausea, acidity, loose motion)",
+            "hi": "अभी गड़बड़ है (जी मिचलाना, एसिडिटी, दस्त)",
+            "as": "বৰ্তমান বিঘ্নিত (বমি ভাব, এচিডিটি, পেট চলা)"
+          },
+          "icon": "alert-triangle",
+          "aliases": ["nausea", "acidity", "loose motion", "vomiting", "jee michlana", "dast", "pet chola"],
+          "flag": "vikriti_active"
+        }
+      ],
+      "next": "ayush_sleep_bowel"
+    },
+
+    "ayush_sleep_bowel": {
+      "id": "ayush_sleep_bowel",
+      "field": "ayush_vikriti_current",
+      "section": "ayush",
+      "type": "multi_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "How have your sleep and bowel movements been recently?",
+        "hi": "हाल ही में आपकी नींद और मल त्याग कैसे रहे हैं?",
+        "as": "শেহতীয়াকৈ আপোনাৰ টোপনি আৰু পেটৰ কাম কেনেকুৱা হৈছে?"
+      },
+      "options": [
+        {
+          "value": "sleep_sound",
+          "label": { "en": "Sleep: sound", "hi": "नींद: अच्छी", "as": "টোপনি: ভাল" },
+          "group": "sleep",
+          "aliases": ["good sleep", "sound sleep", "achi neend"]
+        },
+        {
+          "value": "sleep_disturbed",
+          "label": { "en": "Sleep: disturbed", "hi": "नींद: बाधित", "as": "টোপনি: বিঘ্নিত" },
+          "group": "sleep",
+          "aliases": ["disturbed sleep", "neend nahi aati", "wake up at night"]
+        },
+        {
+          "value": "sleep_very_little",
+          "label": { "en": "Sleep: very little", "hi": "नींद: बहुत कम", "as": "টোপনি: বহুত কম" },
+          "group": "sleep",
+          "aliases": ["very little sleep", "kam neend", "insomnia"]
+        },
+        {
+          "value": "bowel_regular",
+          "label": { "en": "Bowel: regular", "hi": "मल त्याग: नियमित", "as": "পেটৰ কাম: নিয়মীয়া" },
+          "group": "bowel",
+          "aliases": ["regular bowel", "normal motion"]
+        },
+        {
+          "value": "bowel_irregular",
+          "label": { "en": "Bowel: irregular", "hi": "मल त्याग: अनियमित", "as": "পেটৰ কাম: অনিয়মীয়া" },
+          "group": "bowel",
+          "aliases": ["irregular bowel"]
+        },
+        {
+          "value": "bowel_constipated",
+          "label": { "en": "Bowel: constipated", "hi": "मल त्याग: कब्ज़", "as": "পেটৰ কাম: কোষ্ঠকাঠিন্য" },
+          "group": "bowel",
+          "aliases": ["constipation", "kabj", "kabz"]
+        },
+        {
+          "value": "bowel_loose",
+          "label": { "en": "Bowel: loose", "hi": "मल त्याग: पतला/ढीला", "as": "পেটৰ কাম: পাতল" },
+          "group": "bowel",
+          "aliases": ["loose motion", "dast", "diarrhea"]
+        }
+      ],
+      "next": "ayush_satmya"
+    },
+
+    "ayush_satmya": {
+      "id": "ayush_satmya",
+      "field": "ayush_satmya",
+      "section": "ayush",
+      "type": "free_text",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Do certain foods, weather, or seasons clearly disagree with you?",
+        "hi": "क्या कोई खाना, मौसम, या ऋतु आपको साफ़ तौर पर सूट नहीं करती?",
+        "as": "কিছুমান খাদ্য, বতৰ, বা ঋতুৱে আপোনাক স্পষ্টকৈ অসুবিধা কৰেনে?"
+      },
+      "help": {
+        "en": "Say or type freely — e.g. 'cold weather', 'dairy', 'spicy food', or 'none that I've noticed'.",
+        "hi": "स्वतंत्र रूप से बोलें या टाइप करें — जैसे 'ठंड का मौसम', 'डेयरी', 'मसालेदार खाना', या 'कुछ खास नहीं'।",
+        "as": "মুক্তভাৱে কওক বা টাইপ কৰক — যেনে 'জাৰৰ বতৰ', 'গাখীৰজাত সামগ্ৰী', 'জিলাপীয়া খাদ্য', বা 'একো লক্ষ্য কৰা নাই'।"
+      },
+      "quick_options": [
+        { "value": "cold_weather", "label": { "en": "Cold weather", "hi": "ठंड का मौसम", "as": "জাৰৰ বতৰ" } },
+        { "value": "hot_weather", "label": { "en": "Hot weather", "hi": "गर्मी", "as": "গৰম বতৰ" } },
+        { "value": "dairy", "label": { "en": "Dairy", "hi": "डेयरी", "as": "গাখীৰজাত" } },
+        { "value": "spicy_food", "label": { "en": "Spicy food", "hi": "मसालेदार खाना", "as": "জিলাপীয়া খাদ্য" } },
+        { "value": "none_noticed", "label": { "en": "None noticed", "hi": "कुछ खास नहीं", "as": "একো লক্ষ্য কৰা নাই" } }
+      ],
+      "next": "ayush_satva"
+    },
+
+    "ayush_satva": {
+      "id": "ayush_satva",
+      "field": "ayush_satva",
+      "section": "ayush",
+      "type": "single_select",
+      "allow_voice": true,
+      "optional": true,
+      "prompt": {
+        "en": "How would you say you're handling stress or worry lately?",
+        "hi": "हाल ही में आप तनाव या चिंता को कैसे संभाल रहे हैं?",
+        "as": "শেহতীয়াকৈ আপুনি চিন্তা বা মানসিক চাপ কেনেকৈ সামাল দিছে?"
+      },
+      "help": {
+        "en": "This question is optional and confidential — you may skip it.",
+        "hi": "यह सवाल वैकल्पिक और गोपनीय है — आप इसे छोड़ सकते हैं।",
+        "as": "এই প্ৰশ্নটো বৈকল্পিক আৰু গোপনীয় — আপুনি এইটো এৰি যাব পাৰে।"
+      },
+      "options": [
+        {
+          "value": "calm_steady",
+          "label": { "en": "Calm and steady", "hi": "शांत और स्थिर", "as": "শান্ত আৰু স্থিৰ" },
+          "icon": "smile",
+          "aliases": ["calm", "fine", "steady", "theek hoon"]
+        },
+        {
+          "value": "anxious_restless",
+          "label": { "en": "Anxious / restless most days", "hi": "ज़्यादातर दिन बेचैन / चिंतित", "as": "বেছিভাগ দিনতে চিন্তিত / অস্থিৰ" },
+          "icon": "alert-circle",
+          "aliases": ["anxious", "restless", "worried", "chinta", "bechaini"]
+        },
+        {
+          "value": "low_fatigued",
+          "label": { "en": "Low mood / fatigued", "hi": "उदास / थका हुआ महसूस होता है", "as": "মন বেয়া / ভাগৰুৱা লাগে" },
+          "icon": "battery-low",
+          "aliases": ["low mood", "fatigued", "tired", "udaas", "thaka hua"]
+        },
+        {
+          "value": "prefer_not_to_answer",
+          "label": { "en": "Prefer not to answer", "hi": "जवाब नहीं देना चाहता/चाहती", "as": "উত্তৰ দিব নিবিচাৰো" },
+          "icon": "lock",
+          "aliases": ["skip", "prefer not to say", "nahi bataana chahta"]
+        }
+      ],
+      "next": "past_history"
     }
   },
 

@@ -12,9 +12,18 @@ multi-select extraction, scale word parsing, and fuzzy phonetic matching.
 from __future__ import annotations
 
 import difflib
+import json
+import logging
 import os
 import re
+import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# Circuit breaker: if Gemini experiences 503 high demand or network timeouts,
+# pause remote calls for 60 seconds to guarantee instant, freeze-free kiosk operation.
+_GEMINI_CIRCUIT_OPEN_UNTIL = 0.0
 
 USE_LLM = os.getenv("MEDIKIOSK_LLM", "").lower() in {"1", "true", "openai", "on"}
 
@@ -46,15 +55,29 @@ def interpret(node: dict, text: str, lang: str = "en") -> dict:
     if node.get("type") == "yes_no":
         return _interpret_yes_no(node, text_norm, lang)
 
-    # 3. Multi-select and Single-select matching
+    # 3. Free text nodes (direct voice/text capture + quick option matching)
+    if node.get("type") == "free_text":
+        quick_opts = node.get("quick_options", [])
+        for opt in quick_opts:
+            val = opt.get("value", "")
+            lbl = opt.get("label", {})
+            opt_texts = [val.lower(), val.replace("_", " ").lower()]
+            if isinstance(lbl, dict):
+                opt_texts.extend([str(v).lower() for v in lbl.values()])
+            if any(ot in text_norm for ot in opt_texts if ot):
+                return {"value": val, "confidence": 1.0, "method": "quick_option"}
+        return {"value": text.strip(), "confidence": 0.95, "method": "free_text"}
+
+    # 4. Multi-select and Single-select matching
     result = _interpret_aliases(node, text_norm, lang)
 
-    # Optional real LLM only if aliases were ambiguous AND a model is configured.
+    # Optional real LLM only if aliases were ambiguous AND a model is configured AND circuit is healthy.
     if USE_LLM and result["confidence"] < 0.55:
-        try:
-            return _llm_interpret(node, text, lang)
-        except Exception:
-            pass
+        if time.time() >= _GEMINI_CIRCUIT_OPEN_UNTIL:
+            try:
+                return _llm_interpret(node, text, lang)
+            except Exception:
+                pass
 
     return result
 
@@ -224,61 +247,48 @@ def _interpret_aliases(node: dict, text_norm: str, lang: str) -> dict:
 
 
 def _call_gemini_text(prompt: str, temperature: float = 0.2) -> str:
-    """Call Google AI Studio Gemini API for text generation."""
+    """Call Google AI Studio Gemini API with strict 2.0s timeout and automatic 60s circuit breaker."""
+    global _GEMINI_CIRCUIT_OPEN_UNTIL
+
+    now = time.time()
+    if now < _GEMINI_CIRCUIT_OPEN_UNTIL:
+        raise RuntimeError("Gemini circuit breaker open (remote call bypassed to prevent freeze)")
+
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY not configured")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
-    # Try google.genai SDK first (new, recommended)
-    try:
-        import google.genai as genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=genai.types.GenerateContentConfig(
-                temperature=temperature,
-            ),
-        )
-        return response.text.strip()
-    except ImportError:
-        logger.info("google.genai SDK not found; trying google-generativeai...")
-    except Exception as e:
-        logger.warning("google.genai call failed (%s)", e)
-
-    # Fallback to google.generativeai SDK (deprecated but still works)
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model_instance = genai.GenerativeModel(model)
-        resp = model_instance.generate_content(prompt)
-        return resp.text.strip()
-    except ImportError:
-        logger.info("google-generativeai SDK not found; using direct REST API")
-    except Exception as e:
-        logger.warning("Legacy SDK call failed (%s)", e)
-
-    # Direct REST API call
     import httpx
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": temperature},
     }
-    with httpx.Client(timeout=15.0) as client:
-        resp = client.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
 
-    candidates = data.get("candidates", [])
-    if not candidates:
-        raise RuntimeError("No candidate in Gemini response")
-    parts = candidates[0].get("content", {}).get("parts", [])
-    if not parts:
-        raise RuntimeError("Empty response parts from Gemini")
-    return parts[0].get("text", "").strip()
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            resp = client.post(url, json=payload)
+            if resp.status_code in (503, 429):
+                _GEMINI_CIRCUIT_OPEN_UNTIL = time.time() + 60.0
+                logger.warning("Gemini %s (demand spike). 60s circuit breaker enabled; using instant local fallback.", resp.status_code)
+                raise RuntimeError(f"Gemini {resp.status_code}")
+            resp.raise_for_status()
+            data = resp.json()
+
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise RuntimeError("No candidate in Gemini response")
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if not parts:
+            raise RuntimeError("Empty response parts from Gemini")
+        return parts[0].get("text", "").strip()
+
+    except Exception as e:
+        _GEMINI_CIRCUIT_OPEN_UNTIL = time.time() + 45.0
+        logger.warning("Gemini fast-timeout/error (%s). Instant clinical fallback activated.", e)
+        raise
 
 
 def _llm_interpret(node: dict, text: str, lang: str) -> dict:
@@ -320,7 +330,7 @@ def phrase_hpi(
     answer_meta: dict[str, Any] | None = None,
 ) -> str:
     """Phrase the History of Present Illness from verified fields and voice transcripts."""
-    if USE_LLM or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
+    if (USE_LLM or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")) and time.time() >= _GEMINI_CIRCUIT_OPEN_UNTIL:
         try:
             return _llm_phrase(narrative_fields, lang, answer_meta)
         except Exception:

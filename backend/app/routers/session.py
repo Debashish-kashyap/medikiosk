@@ -19,13 +19,14 @@ def _require(session_id: str) -> dict:
 
 @router.post("")
 def create_session(body: CreateSessionRequest) -> dict:
-    session = session_store.create_session(language=body.language)
+    session = session_store.create_session(language=body.language, ayush_mode=body.ayush_mode)
     question = dialogue_engine.current_question(session)   # sets entry node
     session_store.save_session(session)
     audit_log.record(session["id"], actor="system", action="create", resource="session", purpose="care")
     return {
         "session_id": session["id"],
         "language": session["language"],
+        "ayush_mode": session.get("ayush_mode", False),
         "question": question,
     }
 
@@ -63,6 +64,8 @@ def get_session(session_id: str) -> dict:
     return {
         "session_id": session["id"],
         "language": session["language"],
+        "ayush_mode": session.get("ayush_mode", False),
+        "ayush_done": session.get("ayush_done", False),
         "status": session["status"],
         "current_node": session["current_node"],
         "answers": session["answers"],

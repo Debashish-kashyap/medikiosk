@@ -379,6 +379,48 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
             </div>
           </div>
 
+          {/* AYUSH Clinical Profile Card */}
+          {sum.ayush_profile && (
+            <div className="bg-emerald-50/70 rounded-2xl shadow-sm border border-emerald-200 p-5">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-800 mb-3">
+                <span>🌿</span>
+                <span>{t(lang, "ayushSectionTitle")}</span>
+              </div>
+              <div className="space-y-2.5 text-xs text-slate-800">
+                {sum.ayush_profile.prakriti_cue && (
+                  <div>
+                    <span className="font-bold text-emerald-900 block">{t(lang, "ayushPrakriti")}:</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.prakriti_cue}</span>
+                  </div>
+                )}
+                {sum.ayush_profile.ahara_shakti && (
+                  <div>
+                    <span className="font-bold text-emerald-900 block">{t(lang, "ayushAgni")}:</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.ahara_shakti}</span>
+                  </div>
+                )}
+                {sum.ayush_profile.vikriti_current && sum.ayush_profile.vikriti_current.length > 0 && (
+                  <div>
+                    <span className="font-bold text-emerald-900 block">{t(lang, "ayushSleepBowel")}:</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.vikriti_current.join(", ")}</span>
+                  </div>
+                )}
+                {sum.ayush_profile.satmya && (
+                  <div>
+                    <span className="font-bold text-emerald-900 block">{t(lang, "ayushSatmya")}:</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.satmya}</span>
+                  </div>
+                )}
+                {sum.ayush_profile.satva && (
+                  <div>
+                    <span className="font-bold text-emerald-900 block">{t(lang, "ayushSatva")}:</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.satva}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Patient Transparency & DPDP Security Badge */}
           <div className="bg-slate-900 text-white rounded-2xl p-4 text-xs space-y-2 border border-slate-800">
             <div className="flex items-center gap-2 font-bold text-teal-300">
