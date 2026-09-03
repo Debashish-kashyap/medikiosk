@@ -12,9 +12,13 @@ multi-select extraction, scale word parsing, and fuzzy phonetic matching.
 from __future__ import annotations
 
 import difflib
+import json
+import logging
 import os
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 USE_LLM = os.getenv("MEDIKIOSK_LLM", "").lower() in {"1", "true", "openai", "on"}
 
