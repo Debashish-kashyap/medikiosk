@@ -250,7 +250,7 @@ def _call_gemini_text(prompt: str, temperature: float = 0.2) -> str:
 
     # Try google.genai SDK first (new, recommended)
     try:
-        import google.genai as genai
+        import google.genai as genai  # type: ignore
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
             model=model,
@@ -267,7 +267,7 @@ def _call_gemini_text(prompt: str, temperature: float = 0.2) -> str:
 
     # Fallback to google.generativeai SDK (deprecated but still works)
     try:
-        import google.generativeai as genai
+        import google.generativeai as genai  # type: ignore
         genai.configure(api_key=api_key)
         model_instance = genai.GenerativeModel(model)
         resp = model_instance.generate_content(prompt)
