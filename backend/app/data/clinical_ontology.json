@@ -44,28 +44,28 @@
           "label": { "en": "Cough / cold", "hi": "खांसी / जुकाम", "as": "কাহ / চৰ্দি" },
           "icon": "lungs",
           "aliases": ["cough", "khansi", "cold", "jukham", "sardi", "nazla", "sore throat", "gala kharab", "kaah", "kah", "sordi", "gola bikh"],
-          "next": "past_history"
+          "next": "cough_duration"
         },
         {
           "value": "headache",
           "label": { "en": "Headache", "hi": "सिरदर्द", "as": "মূৰৰ বিষ" },
           "icon": "brain",
           "aliases": ["headache", "sir dard", "sardard", "head", "sir", "migraine", "chakkar", "dizziness", "muror bikh", "mur bikh", "muror bix", "mur ghuroni"],
-          "next": "past_history"
+          "next": "headache_onset"
         },
         {
           "value": "abdominal_pain",
           "label": { "en": "Stomach pain", "hi": "पेट दर्द", "as": "পেটৰ বিষ" },
           "icon": "stomach",
           "aliases": ["stomach", "stomach pain", "pet dard", "pet", "abdomen", "belly", "gas", "acidity", "vomit", "vomiting", "loose motion", "dast", "petor bikh", "pet bikh", "petor bix", "petor kamorani"],
-          "next": "past_history"
+          "next": "abd_onset"
         },
         {
           "value": "other",
           "label": { "en": "Something else", "hi": "कुछ और", "as": "অন্য কিবা" },
           "icon": "more",
           "aliases": ["other", "kuch aur", "something else", "general", "body pain", "badan dard", "aan kiba", "onno kiba"],
-          "next": "past_history"
+          "next": "other_duration"
         }
       ]
     },
@@ -413,6 +413,519 @@
           "aliases": ["none", "koi nahi", "kuch nahi", "nothing", "eku nai", "kono nai"]
         }
       ],
+      "next": "past_history"
+    },
+
+    "abd_onset": {
+      "id": "abd_onset",
+      "field": "abd_onset",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "When did the stomach pain start?",
+        "hi": "पेट में दर्द कब शुरू हुआ?",
+        "as": "পেটৰ বিষ কেতিয়া আৰম্ভ হৈছিল?"
+      },
+      "options": [
+        {
+          "value": "under_1h",
+          "label": { "en": "Less than 1 hour ago", "hi": "1 घंटे से कम", "as": "১ ঘণ্টাতকৈ কম সময়ৰ আগতে" },
+          "icon": "clock",
+          "aliases": ["just now", "abhi", "minutes", "1 hour", "under an hour", "thodi der", "ei matro", "olop aagote"]
+        },
+        {
+          "value": "today",
+          "label": { "en": "Earlier today", "hi": "आज", "as": "আজি" },
+          "icon": "clock",
+          "aliases": ["today", "aaj", "morning", "subah", "shaam", "hours", "ghante", "aaji", "bela"]
+        },
+        {
+          "value": "few_days",
+          "label": { "en": "A few days", "hi": "कुछ दिन", "as": "কেইদিনমান" },
+          "icon": "calendar",
+          "aliases": ["days", "din", "few days", "kuch din", "2 days", "3 days", "koidinman", "dui din"]
+        },
+        {
+          "value": "over_week",
+          "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा", "as": "এসপ্তাহতকৈ অধিক" },
+          "icon": "calendar",
+          "aliases": ["week", "weeks", "hafta", "long", "over a week", "month", "mahina", "ehapta", "bohut din"]
+        }
+      ],
+      "next": "abd_site"
+    },
+
+    "abd_site": {
+      "id": "abd_site",
+      "field": "abd_site",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Where in your stomach does it hurt most?",
+        "hi": "पेट में सबसे ज़्यादा दर्द कहाँ हो रहा है?",
+        "as": "পেটৰ কোন অংশত আটাইতকৈ বেছি বিষাইছে?"
+      },
+      "options": [
+        {
+          "value": "upper",
+          "label": { "en": "Upper stomach", "hi": "ऊपरी पेट", "as": "পেটৰ ওপৰৰ অংশত" },
+          "icon": "arrow-up",
+          "aliases": ["upper", "top", "oopari", "chhati ke niche", "gas", "acidity", "oporot", "opor pet"]
+        },
+        {
+          "value": "lower_right",
+          "label": { "en": "Lower right side", "hi": "निचले दाईं ओर", "as": "তলৰ সোঁফালে" },
+          "icon": "arrow-down-right",
+          "aliases": ["lower right", "right", "daayen", "appendix", "niche", "xoon fale", "tolot", "tolor xonfale"]
+        },
+        {
+          "value": "around_navel",
+          "label": { "en": "Around belly button", "hi": "नाभि के आसपास", "as": "নাভিৰ চাৰিওফালে" },
+          "icon": "target",
+          "aliases": ["navel", "belly button", "naabhi", "beech", "center", "nabhi", "majot", "nabhir kaxot"]
+        },
+        {
+          "value": "all_over",
+          "label": { "en": "All over stomach", "hi": "पूरे पेट में", "as": "গোটেই পেটত" },
+          "icon": "maximize",
+          "aliases": ["all over", "poora pet", "everywhere", "sab jagah", "gotei pet", "xokolute"]
+        }
+      ],
+      "next": "abd_character"
+    },
+
+    "abd_character": {
+      "id": "abd_character",
+      "field": "abd_character",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "What does the stomach pain feel like?",
+        "hi": "पेट का दर्द कैसा महसूस होता है?",
+        "as": "পেটৰ বিষটো কেনেকুৱা অনুভৱ হৈছে?"
+      },
+      "options": [
+        {
+          "value": "cramping",
+          "label": { "en": "Cramping / spasm", "hi": "मरोड़ / ऐंठन", "as": "খামোচ / মোচৰ খাই ধৰা" },
+          "icon": "activity",
+          "aliases": ["cramps", "cramping", "spasm", "marod", "ainthan", "gas cramp", "kamorani", "mosor"]
+        },
+        {
+          "value": "burning",
+          "label": { "en": "Burning / acidic", "hi": "जलन / एसिडिटी", "as": "পোৰণি / এচিডিটি" },
+          "icon": "flame",
+          "aliases": ["burning", "jalan", "acid", "acidity", "heartburn", "poroni", "jwole"]
+        },
+        {
+          "value": "sharp",
+          "label": { "en": "Sharp / stabbing", "hi": "तेज़ / चुभन", "as": "তীব্ৰ / বিন্ধা বিষ" },
+          "icon": "zap",
+          "aliases": ["sharp", "stabbing", "tez", "chubhan", "severe", "tivro", "bindha"]
+        },
+        {
+          "value": "dull",
+          "label": { "en": "Dull ache / heaviness", "hi": "हल्का दर्द / भारीपन", "as": "মৃদু বিষ / গধুৰ ভাৱ" },
+          "icon": "cloud",
+          "aliases": ["dull", "heavy", "halka", "bhaari", "meetha dard", "mridu", "godhur", "lahe lahe"]
+        }
+      ],
+      "next": "abd_assoc"
+    },
+
+    "abd_assoc": {
+      "id": "abd_assoc",
+      "field": "abd_assoc",
+      "section": "hpi",
+      "type": "multi_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Do you have any of these symptoms with the stomach pain?",
+        "hi": "क्या पेट दर्द के साथ इनमें से कोई लक्षण है?",
+        "as": "পেটৰ বিষৰ সৈতে তলৰ কোনো লক্ষণ আছে নেকি?"
+      },
+      "options": [
+        {
+          "value": "vomiting",
+          "label": { "en": "Nausea / vomiting", "hi": "उल्टी / जी मिचलाना", "as": "বমি / বমি ভাব" },
+          "icon": "alert-circle",
+          "aliases": ["vomit", "vomiting", "ulti", "nausea", "ji michlana", "bomi", "bomi bhab"]
+        },
+        {
+          "value": "loose_motion",
+          "label": { "en": "Loose motions / diarrhea", "hi": "दस्त / पतले दस्त", "as": "পাতল শৌচ / ডায়েৰিয়া" },
+          "icon": "activity",
+          "aliases": ["loose motion", "diarrhea", "dast", "patla dast", "pet kharab", "patol souse"]
+        },
+        {
+          "value": "fever",
+          "label": { "en": "Fever", "hi": "बुखार", "as": "জ্বৰ" },
+          "icon": "thermometer",
+          "aliases": ["fever", "bukhar", "tap", "gaa gorom", "jor"]
+        },
+        {
+          "value": "none",
+          "label": { "en": "None of these", "hi": "इनमें से कोई नहीं", "as": "ইয়াৰ এটাও নহয়" },
+          "icon": "check",
+          "aliases": ["none", "nothing", "kuch nahi", "koi nahi", "eku nai", "kono nai"]
+        }
+      ],
+      "next": "abd_severity"
+    },
+
+    "abd_severity": {
+      "id": "abd_severity",
+      "field": "abd_severity",
+      "section": "hpi",
+      "type": "scale",
+      "scale_min": 0,
+      "scale_max": 10,
+      "allow_voice": true,
+      "prompt": {
+        "en": "On a scale from 0 to 10, how severe is the stomach pain?",
+        "hi": "0 से 10 के पैमाने पर, पेट का दर्द कितना तेज़ है?",
+        "as": "০ৰ পৰা ১০ৰ স্কেলত পেটৰ বিষ কিমান তীব্ৰ?"
+      },
+      "help": {
+        "en": "0 is no pain, and 10 is the most severe pain imaginable.",
+        "hi": "0 का मतलब बिल्कुल दर्द नहीं, और 10 का मतलब असहनीय दर्द है।",
+        "as": "০ মানে কোনো বিষ নাই আৰু ১০ মানে অসহ্যকৰ বিষ।"
+      },
+      "next": "past_history"
+    },
+
+    "cough_duration": {
+      "id": "cough_duration",
+      "field": "cough_duration",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "How long have you had the cough?",
+        "hi": "आपको खांसी कितने समय से है?",
+        "as": "আপোনাৰ কাহ কিমান দিনৰ পৰা হৈছে?"
+      },
+      "options": [
+        {
+          "value": "few_days",
+          "label": { "en": "A few days (under a week)", "hi": "कुछ दिन (1 हफ्ते से कम)", "as": "কেইদিনমান (১ সপ্তাহতকৈ কম)" },
+          "icon": "clock",
+          "aliases": ["few days", "kuch din", "2 days", "3 days", "recent", "koidinman"]
+        },
+        {
+          "value": "one_two_weeks",
+          "label": { "en": "1 to 2 weeks", "hi": "1 से 2 हफ्ते", "as": "১ ৰ পৰা ২ সপ্তাহ" },
+          "icon": "calendar",
+          "aliases": ["one week", "two weeks", "1 week", "2 weeks", "ek hafta", "do hafte", "ehapta", "dui hapta"]
+        },
+        {
+          "value": "chronic",
+          "label": { "en": "More than 2 weeks", "hi": "2 हफ्ते से ज़्यादा", "as": "২ সপ্তাহতকৈ অধিক" },
+          "icon": "calendar",
+          "aliases": ["chronic", "long time", "months", "month", "do hafte se zyada", "bahut din", "dui haptatkoi besi"]
+        }
+      ],
+      "next": "cough_type"
+    },
+
+    "cough_type": {
+      "id": "cough_type",
+      "field": "cough_type",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "What kind of cough is it?",
+        "hi": "खांसी किस प्रकार की है?",
+        "as": "কাহটো কেনেকুৱা ধৰণৰ?"
+      },
+      "options": [
+        {
+          "value": "dry",
+          "label": { "en": "Dry cough (no mucus)", "hi": "सूखी खांसी (बलगम नहीं)", "as": "শুকান কাহ (কফ নাই)" },
+          "icon": "wind",
+          "aliases": ["dry", "sukhi", "sukhi khansi", "no phlegm", "no mucus", "xukan", "sukan kah"]
+        },
+        {
+          "value": "productive",
+          "label": { "en": "Wet cough with phlegm / mucus", "hi": "गीली खांसी (बलगम के साथ)", "as": "কফ থকা সেমেকা কাহ" },
+          "icon": "droplet",
+          "aliases": ["wet", "phlegm", "mucus", "balgam", "geeli khansi", "kof", "koph", "kaph"]
+        }
+      ],
+      "next": "cough_breathless"
+    },
+
+    "cough_breathless": {
+      "id": "cough_breathless",
+      "field": "cough_breathless",
+      "section": "hpi",
+      "type": "yes_no",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Are you also experiencing shortness of breath or wheezing?",
+        "hi": "क्या आपको सांस लेने में तकलीफ या घबराहट भी है?",
+        "as": "আপোনাৰ উশাহ লওঁতে কষ্ট বা উশাহ বন্ধ হোৱা যেন অনুভৱ হৈছে নেকি?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": { "en": "Yes", "hi": "हाँ", "as": "হয়" },
+          "icon": "alert-triangle",
+          "aliases": ["yes", "haan", "ha", "breathless", "saans", "wheezing", "hoi", "uhahot koshto"]
+        },
+        {
+          "value": "no",
+          "label": { "en": "No", "hi": "नहीं", "as": "নহয়" },
+          "icon": "check",
+          "aliases": ["no", "nahi", "normal", "saans theek hai", "nohoi", "nai"]
+        }
+      ],
+      "next": "cough_assoc"
+    },
+
+    "cough_assoc": {
+      "id": "cough_assoc",
+      "field": "cough_assoc",
+      "section": "hpi",
+      "type": "multi_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Do you have any of these along with the cough?",
+        "hi": "खांसी के साथ इनमें से कोई लक्षण है?",
+        "as": "কাহৰ সৈতে তলৰ কোনো লক্ষণ আছে নেকি?"
+      },
+      "options": [
+        {
+          "value": "fever",
+          "label": { "en": "Fever / chills", "hi": "बुखार / ठंड लगना", "as": "জ্বৰ / কঁপনি" },
+          "icon": "thermometer",
+          "aliases": ["fever", "bukhar", "thand", "jor", "gaa gorom"]
+        },
+        {
+          "value": "sore_throat",
+          "label": { "en": "Sore throat / throat pain", "hi": "गले में खराश / दर्द", "as": "ডিঙিৰ বিষ / ডিঙি খচখচোৱা" },
+          "icon": "activity",
+          "aliases": ["sore throat", "gala", "gala kharab", "gale me dard", "dingi bikh", "gola bikh"]
+        },
+        {
+          "value": "chest_pain",
+          "label": { "en": "Chest discomfort", "hi": "सीने में दर्द या भारीपन", "as": "বুকুৰ বিষ বা গধুৰ অনুভৱ" },
+          "icon": "heart",
+          "aliases": ["chest pain", "chest discomfort", "seena", "bukut bikh"]
+        },
+        {
+          "value": "none",
+          "label": { "en": "None of these", "hi": "इनमें से कोई नहीं", "as": "ইয়াৰ এটাও নহয়" },
+          "icon": "check",
+          "aliases": ["none", "nothing", "kuch nahi", "koi nahi", "eku nai", "kono nai"]
+        }
+      ],
+      "next": "past_history"
+    },
+
+    "headache_onset": {
+      "id": "headache_onset",
+      "field": "headache_onset",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "When and how did the headache start?",
+        "hi": "सिरदर्द कब और कैसे शुरू हुआ?",
+        "as": "মূৰৰ বিষ কেতিয়া আৰু কেনেকৈ আৰম্ভ হৈছিল?"
+      },
+      "options": [
+        {
+          "value": "sudden_thunderclap",
+          "label": { "en": "Suddenly and very severe", "hi": "अचानक बहुत तेज़", "as": "হঠাৎ অতি তীব্ৰভাৱে" },
+          "icon": "zap",
+          "aliases": ["sudden", "thunderclap", "achanak", "ekdum se", "tez", "hotat", "akosit"]
+        },
+        {
+          "value": "today",
+          "label": { "en": "Earlier today", "hi": "आज", "as": "আজি" },
+          "icon": "clock",
+          "aliases": ["today", "aaj", "morning", "subah", "gradual", "aaji", "lahe lahe"]
+        },
+        {
+          "value": "few_days",
+          "label": { "en": "A few days ago", "hi": "कुछ दिन पहले", "as": "কেইদিনমান আগতে" },
+          "icon": "calendar",
+          "aliases": ["few days", "kuch din", "2 days", "3 days", "koidinman"]
+        },
+        {
+          "value": "chronic",
+          "label": { "en": "Recurring / long-standing", "hi": "बार-बार या लंबे समय से", "as": "ঘনাই হোৱা বা পুৰণি" },
+          "icon": "calendar",
+          "aliases": ["chronic", "migraine", "frequent", "baar baar", "purana", "ghonai hoi", "bohut din"]
+        }
+      ],
+      "next": "headache_location"
+    },
+
+    "headache_location": {
+      "id": "headache_location",
+      "field": "headache_location",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Where is the headache located?",
+        "hi": "सिर में दर्द कहाँ पर है?",
+        "as": "মূৰৰ কোন অংশত বিষাইছে?"
+      },
+      "options": [
+        {
+          "value": "one_side",
+          "label": { "en": "One side of head (throbbing)", "hi": "सिर के एक तरफ (धड़कन जैसा)", "as": "মূৰৰ এফালে (ধপধপনি)" },
+          "icon": "arrow-left",
+          "aliases": ["one side", "half head", "aadha sar", "migraine", "ek taraf", "efale", "adhmur"]
+        },
+        {
+          "value": "forehead",
+          "label": { "en": "Forehead / front of head", "hi": "माथे पर / आगे की तरफ", "as": "কপালত / মূৰৰ সন্মুখৰ ফালে" },
+          "icon": "target",
+          "aliases": ["forehead", "front", "matha", "aage", "kopal", "mukhot"]
+        },
+        {
+          "value": "back_neck",
+          "label": { "en": "Back of head / neck", "hi": "सिर के पीछे / गर्दन में", "as": "মূৰৰ পিছফালে / ডিঙিত" },
+          "icon": "arrow-down",
+          "aliases": ["back", "neck", "peechhe", "gardan", "pison fale", "dingit"]
+        },
+        {
+          "value": "all_over",
+          "label": { "en": "Entire head / tight band sensation", "hi": "पूरे सिर में / भारीपन", "as": "গোটেই মূৰত / টান ভাৱ" },
+          "icon": "maximize",
+          "aliases": ["all over", "whole head", "poora sar", "band", "bhaari", "gotei mur", "taan"]
+        }
+      ],
+      "next": "headache_assoc"
+    },
+
+    "headache_assoc": {
+      "id": "headache_assoc",
+      "field": "headache_assoc",
+      "section": "hpi",
+      "type": "multi_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "Do you have any of these symptoms with the headache?",
+        "hi": "सिरदर्द के साथ इनमें से कोई लक्षण है?",
+        "as": "মূৰৰ বিষৰ সৈতে তলৰ কোনো লক্ষণ আছে নেকি?"
+      },
+      "options": [
+        {
+          "value": "nausea",
+          "label": { "en": "Nausea / vomiting", "hi": "उल्टी / जी मिचलाना", "as": "বমি / ওকালি অহা" },
+          "icon": "alert-circle",
+          "aliases": ["vomit", "ulti", "nausea", "ji michlana", "bomi", "bomi bhab"]
+        },
+        {
+          "value": "vision_light",
+          "label": { "en": "Blurred vision / light sensitivity", "hi": "धुंधला दिखना / रोशनी से परेशानी", "as": "অস্পষ্ট দৃষ্টি / পোহৰত অসুবিধা" },
+          "icon": "eye",
+          "aliases": ["vision", "light", "roshni", "dhundhla", "sensitivity", "dristi", "pohorot asubidha"]
+        },
+        {
+          "value": "stiff_neck_fever",
+          "label": { "en": "Stiff neck / high fever", "hi": "गर्दन में अकड़न / तेज़ बुखार", "as": "ডিঙি কঠিন হোৱা / তীব্ৰ জ্বৰ" },
+          "icon": "thermometer",
+          "aliases": ["stiff neck", "neck stiffness", "fever", "gardan akdan", "dingi taan", "jor"]
+        },
+        {
+          "value": "none",
+          "label": { "en": "None of these", "hi": "इनमें से कोई नहीं", "as": "ইয়াৰ এটাও নহয়" },
+          "icon": "check",
+          "aliases": ["none", "nothing", "kuch nahi", "koi nahi", "eku nai", "kono nai"]
+        }
+      ],
+      "next": "headache_severity"
+    },
+
+    "headache_severity": {
+      "id": "headache_severity",
+      "field": "headache_severity",
+      "section": "hpi",
+      "type": "scale",
+      "scale_min": 0,
+      "scale_max": 10,
+      "allow_voice": true,
+      "prompt": {
+        "en": "On a scale from 0 to 10, how severe is the headache?",
+        "hi": "0 से 10 के पैमाने पर, सिरदर्द कितना तेज़ है?",
+        "as": "০ৰ পৰা ১০ৰ স্কেলত মূৰৰ বিষ কিমান তীব্ৰ?"
+      },
+      "help": {
+        "en": "0 is no pain, and 10 is the worst headache imaginable.",
+        "hi": "0 का मतलब दर्द नहीं, और 10 सबसे गंभीर सिरदर्द है।",
+        "as": "০ মানে কোনো বিষ নাই আৰু ১০ মানে অসহ্যকৰ মূৰৰ বিষ।"
+      },
+      "next": "past_history"
+    },
+
+    "other_duration": {
+      "id": "other_duration",
+      "field": "other_duration",
+      "section": "hpi",
+      "type": "single_select",
+      "allow_voice": true,
+      "prompt": {
+        "en": "How long have you been experiencing this issue?",
+        "hi": "आपको यह परेशानी कितने समय से है?",
+        "as": "আপোনাৰ এই সমস্যা কিমান দিনৰ পৰা হৈছে?"
+      },
+      "options": [
+        {
+          "value": "today",
+          "label": { "en": "Started today", "hi": "आज शुरू हुआ", "as": "আজি আৰম্ভ হৈছে" },
+          "icon": "clock",
+          "aliases": ["today", "aaj", "just started", "aaji"]
+        },
+        {
+          "value": "few_days",
+          "label": { "en": "A few days", "hi": "कुछ दिन", "as": "কেইদিনমান" },
+          "icon": "calendar",
+          "aliases": ["days", "din", "few days", "kuch din", "koidinman"]
+        },
+        {
+          "value": "over_week",
+          "label": { "en": "More than a week", "hi": "एक हफ्ते से ज़्यादा", "as": "এসপ্তাহতকৈ অধিক" },
+          "icon": "calendar",
+          "aliases": ["weeks", "week", "hafta", "ehapta", "bohut din"]
+        },
+        {
+          "value": "chronic",
+          "label": { "en": "More than a month / long-standing", "hi": "एक महीने से ज़्यादा / पुरानी समस्या", "as": "এমাহতকৈ অধিক / পুৰণি সমস্যা" },
+          "icon": "calendar",
+          "aliases": ["month", "months", "mahina", "purana", "chronic", "bohut din"]
+        }
+      ],
+      "next": "other_severity"
+    },
+
+    "other_severity": {
+      "id": "other_severity",
+      "field": "other_severity",
+      "section": "hpi",
+      "type": "scale",
+      "scale_min": 0,
+      "scale_max": 10,
+      "allow_voice": true,
+      "prompt": {
+        "en": "On a scale from 0 to 10, how much is this bothering or affecting you?",
+        "hi": "0 से 10 के पैमाने पर, यह परेशानी आपको अभी कितनी लग रही है?",
+        "as": "০ৰ পৰা ১০ৰ স্কেলত এই সমস্যাটোৱে আপোনাক কিমান আমনি কৰিছে?"
+      },
+      "help": {
+        "en": "0 is barely noticeable, 10 is severe distress.",
+        "hi": "0 का मतलब बहुत हल्का, 10 का मतलब अत्यधिक परेशानी।",
+        "as": "০ মানে অতি মৃদু আৰু ১০ মানে অতিশয় কষ্ট।"
+      },
       "next": "past_history"
     },
 
@@ -832,6 +1345,60 @@
       },
       "conditions": [
         { "field": "fever_grade", "equals": "with_chills" }
+      ]
+    },
+    {
+      "id": "acute_abdomen",
+      "label": {
+        "en": "Possible acute abdomen / appendicitis warning",
+        "hi": "संभावित तीव्र पेट आपातकाल / अपेंडिसाइटिस संकेत",
+        "as": "সম্ভাৱ্য জৰুৰীকালীন পেটৰ সমস্যা / এপেনডিচাইটিছৰ সতৰ্কতা"
+      },
+      "priority": "HIGH",
+      "action": {
+        "en": "Urgent surgical / clinical abdominal evaluation required.",
+        "hi": "तत्काल नैदानिक या सर्जिकल पेट जांच की आवश्यकता।",
+        "as": "তাত্ক্ষণিকভাৱে পেটৰ চিকিৎসাজনিত পৰীক্ষাৰ প্ৰয়োজন।"
+      },
+      "conditions": [
+        { "field": "chief_complaint", "equals": "abdominal_pain" },
+        { "field": "abd_site", "equals": "lower_right" }
+      ]
+    },
+    {
+      "id": "thunderclap_headache",
+      "label": {
+        "en": "Thunderclap headache (rapid severe onset)",
+        "hi": "बिजली जैसा अचानक तीव्र सिरदर्द",
+        "as": "হঠাৎ অতি তীব্ৰভাৱে আৰম্ভ হোৱা মূৰৰ বিষ"
+      },
+      "priority": "HIGH",
+      "action": {
+        "en": "Urgent neurological evaluation to rule out intracranial hemorrhage.",
+        "hi": "तत्काल न्यूरोलॉजिकल जांच आवश्यक है।",
+        "as": "তাত্ক্ষণিকভাৱে স্নায়বিক পৰীক্ষাৰ প্ৰয়োজন।"
+      },
+      "conditions": [
+        { "field": "chief_complaint", "equals": "headache" },
+        { "field": "headache_onset", "equals": "sudden_thunderclap" }
+      ]
+    },
+    {
+      "id": "severe_cough_dyspnea",
+      "label": {
+        "en": "Cough with respiratory distress",
+        "hi": "खांसी के साथ सांस लेने में गंभीर परेशानी",
+        "as": "কাহৰ সৈতে উশাহ-নিশাহত তীব্ৰ কষ্ট"
+      },
+      "priority": "HIGH",
+      "action": {
+        "en": "Check oxygen saturation (SpO2) and respiratory status immediately.",
+        "hi": "तुरंत ऑक्सीजन स्तर (SpO2) और श्वसन दर जांचें।",
+        "as": "তাত্ক্ষণিকভাৱে অক্সিজেনৰ মাত্ৰা (SpO2) পৰীক্ষা কৰক।"
+      },
+      "conditions": [
+        { "field": "chief_complaint", "equals": "cough" },
+        { "field": "cough_breathless", "equals": "yes" }
       ]
     }
   ]

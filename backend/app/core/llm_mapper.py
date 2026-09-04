@@ -200,9 +200,9 @@ def _match_candidate(cand: str, text: str) -> float:
 def _phonetic_match(cand: str, text: str) -> float:
     """Compare candidate and text by phonetic code, word-by-word."""
     try:
-        from metaphone import doublemetaphone  # type: ignore
+        from metaphone import doublemetaphone # type: ignore
     except ImportError:
-        return 0.0  # graceful no-op if the package isn't installed
+        return 0.0  
 
     c_words = [w for w in re.split(r"\W+", cand) if w]
     t_words = [w for w in re.split(r"\W+", text) if w]
@@ -418,17 +418,102 @@ def _template_hpi(f: dict[str, Any], answer_meta: dict[str, Any] | None = None) 
             parts.append("associated with " + ", ".join(assoc_clean))
         sentences.append(", ".join(parts) + ".")
 
+    elif cc == "abdominal_pain":
+        parts = ["Patient presents with abdominal pain"]
+        if f.get("abd_onset"):
+            onset_str = {
+                "under_1h": "started less than 1 hour ago",
+                "today": "started earlier today",
+                "few_days": "present for a few days",
+                "over_week": "present for more than a week",
+            }.get(f["abd_onset"], f"onset {f['abd_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
+        if f.get("abd_site"):
+            site_str = {
+                "upper": "located in the upper abdomen",
+                "lower_right": "located in the right lower quadrant (RLQ)",
+                "around_navel": "periumbilical (around navel)",
+                "all_over": "generalized across the abdomen",
+            }.get(f["abd_site"], f"located in {f['abd_site'].replace('_', ' ')}")
+            parts.append(site_str)
+        if f.get("abd_character"):
+            char_str = {
+                "cramping": "described as cramping spasms",
+                "burning": "described as burning/acidic pain",
+                "sharp": "described as sharp/stabbing",
+                "dull": "described as a dull ache",
+            }.get(f["abd_character"], f"{f['abd_character'].replace('_', ' ')}")
+            parts.append(char_str)
+        assoc = f.get("abd_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("associated with " + ", ".join(assoc_clean))
+        if f.get("abd_severity") is not None:
+            parts.append(f"rated at {f['abd_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
+
     elif cc == "cough":
-        sentences.append("Patient presents with cough and respiratory symptoms.")
+        parts = ["Patient presents with cough"]
+        if f.get("cough_duration"):
+            dur_str = {
+                "few_days": "present for a few days (<1 week)",
+                "one_two_weeks": "present for 1-2 weeks",
+                "chronic": "chronic (>2 weeks)",
+            }.get(f["cough_duration"], f"{f['cough_duration'].replace('_', ' ')}")
+            parts.append(dur_str)
+        if f.get("cough_type"):
+            type_str = {
+                "dry": "characterized as non-productive (dry)",
+                "productive": "productive with sputum/mucus",
+            }.get(f["cough_type"], f"{f['cough_type'].replace('_', ' ')}")
+            parts.append(type_str)
+        if f.get("cough_breathless") == "yes":
+            parts.append("associated with dyspnea/wheezing")
+        assoc = f.get("cough_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("accompanied by " + ", ".join(assoc_clean))
+        sentences.append(", ".join(parts) + ".")
 
     elif cc == "headache":
-        sentences.append("Patient presents with acute headache / cranial discomfort.")
-
-    elif cc == "abdominal_pain":
-        sentences.append("Patient presents with abdominal discomfort and pain.")
+        parts = ["Patient presents with headache"]
+        if f.get("headache_onset"):
+            onset_str = {
+                "sudden_thunderclap": "sudden severe onset (thunderclap)",
+                "today": "started earlier today",
+                "few_days": "present for a few days",
+                "chronic": "recurrent/chronic in nature",
+            }.get(f["headache_onset"], f"onset {f['headache_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
+        if f.get("headache_location"):
+            loc_str = {
+                "one_side": "unilateral throbbing pain",
+                "forehead": "frontal/forehead distribution",
+                "back_neck": "occipital/nuchal distribution",
+                "all_over": "holocranial tension-type band",
+            }.get(f["headache_location"], f"located in {f['headache_location'].replace('_', ' ')}")
+            parts.append(loc_str)
+        assoc = f.get("headache_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("associated with " + ", ".join(assoc_clean))
+        if f.get("headache_severity") is not None:
+            parts.append(f"rated at {f['headache_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
 
     elif cc == "other":
-        sentences.append("Patient presents with general health complaints for clinical evaluation.")
+        parts = ["Patient presents for clinical evaluation of general symptoms"]
+        if f.get("other_duration"):
+            dur_str = {
+                "today": "onset earlier today",
+                "few_days": "persisting for a few days",
+                "over_week": "persisting for over a week",
+                "chronic": "chronic condition (>1 month)",
+            }.get(f["other_duration"], f"{f['other_duration'].replace('_', ' ')}")
+            parts.append(dur_str)
+        if f.get("other_severity") is not None:
+            parts.append(f"rated at {f['other_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
 
     elif cc:
         sentences.append(f"Patient presents with chief complaint of {str(cc).replace('_', ' ')}.")
