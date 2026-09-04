@@ -108,7 +108,13 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
       {/* Top Clinical Header & Action Toolbar */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-7 shadow-[0_4px_25px_rgba(15,23,42,0.05)] border border-blue-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-none print:shadow-none print:p-0">
         <div className="flex items-center gap-4">
-          <div className="flex items-center">
+          <button
+            type="button"
+            onClick={onRestart}
+            className="flex items-center text-left focus:outline-none cursor-pointer hover:opacity-90 active:scale-[0.98] transition print:pointer-events-none"
+            title="Return to Home / Landing Page"
+            aria-label="MediKiosk Home"
+          >
             <img
               src={logoMark}
               alt="MediKiosk"
@@ -119,7 +125,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               alt="MediKiosk"
               className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2"
             />
-          </div>
+          </button>
           <div>
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200/60">

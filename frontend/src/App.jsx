@@ -177,6 +177,9 @@ export default function App() {
   }
 
   function restart() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     setPhase("language");
     setPrevPhase("language");
     setSessionId(null);
@@ -192,8 +195,14 @@ export default function App() {
     <div className="min-h-full flex flex-col bg-transparent print:bg-white">
       <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/90 border-t-4 border-t-blue-600 px-6 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between shadow-[0_2px_15px_rgba(37,99,235,0.05)] print:hidden">
         <div className="flex items-center gap-5">
-          {/* Free Logo Mark & Name - Bigger size & Stable Placement on Top-Left */}
-          <div className="flex items-center">
+          {/* Free Logo Mark & Name - Clickable Home Link to Landing Page */}
+          <button
+            type="button"
+            onClick={restart}
+            className="flex items-center text-left focus:outline-none cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+            title="Return to Home / Landing Page"
+            aria-label="MediKiosk Home"
+          >
             <img
               src={logoMark}
               alt="MediKiosk Logo"
@@ -204,7 +213,7 @@ export default function App() {
               alt="MediKiosk"
               className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2 drop-shadow-xs"
             />
-          </div>
+          </button>
 
           <div className="hidden xl:block">
             <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-4 border-l border-slate-200">
@@ -258,7 +267,9 @@ export default function App() {
         <RedFlagBanner lang={lang} flags={redFlags} />
       )}
 
-      <main className={`flex-1 w-full mx-auto px-4 py-6 print:p-0 print:max-w-none ${phase === "summary" ? "max-w-5xl" : "max-w-3xl"}`}>
+      <main className={`flex-1 w-full mx-auto px-4 sm:px-6 py-6 print:p-0 print:max-w-none ${
+        phase === "dashboard" || phase === "summary" ? "max-w-6xl xl:max-w-7xl" : "max-w-3xl"
+      }`}>
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
             {error} — is the API running at {api.base}?

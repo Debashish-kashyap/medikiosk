@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
 import { t } from "../i18n";
-import logoMark from "../assets/logo-mark.png";
-import logoName from "../assets/logo-name.png";
 
 const defaultQueue = [
   { id: "PT-1045", name: "Aarav Sharma", age: 34, complaint: "Chest pain with shortness of breath", priority: "critical", eta: "08 mins" },
@@ -95,29 +93,15 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
       )}
 
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_4px_25px_rgba(15,23,42,0.05)] border border-blue-100/80 p-5 sm:p-7">
-        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="flex items-center hidden sm:flex">
-              <img
-                src={logoMark}
-                alt="MediKiosk"
-                className="h-18 w-18 sm:h-20 sm:w-20 object-contain shrink-0"
-              />
-              <img
-                src={logoName}
-                alt="MediKiosk"
-                className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2"
-              />
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{t(lang, "dashboardBadge")}</p>
+            <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{t(lang, "dashboardTitle")}</h1>
+            <div className="mt-2.5 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-sm font-semibold text-blue-800">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
+              <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{t(lang, "dashboardBadge")}</p>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{t(lang, "dashboardTitle")}</h1>
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-sm font-semibold text-blue-800">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
-                <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
-            </div>
+            <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
