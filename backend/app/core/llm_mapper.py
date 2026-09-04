@@ -200,7 +200,7 @@ def _match_candidate(cand: str, text: str) -> float:
 def _phonetic_match(cand: str, text: str) -> float:
     """Compare candidate and text by phonetic code, word-by-word."""
     try:
-        from metaphone import doublemetaphone
+        from metaphone import doublemetaphone  # type: ignore
     except ImportError:
         return 0.0  # graceful no-op if the package isn't installed
 
