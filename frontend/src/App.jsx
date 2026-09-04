@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { Component, useState } from "react";
 import { api } from "./api";
 import { t } from "./i18n";
 import logoMark from "./assets/logo-mark.png";
@@ -9,6 +9,46 @@ import QuestionCard from "./components/QuestionCard.jsx";
 import RedFlagBanner from "./components/RedFlagBanner.jsx";
 import SummaryView from "./components/SummaryView.jsx";
 import DoctorDashboard from "./components/DoctorDashboard.jsx";
+
+// Error Boundary to prevent any uncaught runtime crash from producing a blank white screen
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("MediKiosk Render Exception:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 max-w-lg mx-auto my-12 border border-red-200 shadow-xl text-center space-y-4">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="text-xl font-bold text-red-900">Encounter View Error</h2>
+          <p className="text-xs text-slate-600 bg-red-50 p-3 rounded-xl border border-red-100 font-mono text-left overflow-auto max-h-32">
+            {this.state.error?.toString()}
+          </p>
+          <div className="flex justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                if (this.props.onReset) this.props.onReset();
+              }}
+              className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-full hover:bg-slate-800 transition"
+            >
+              Reset / Return to Start
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Kiosk flow: language -> consent -> interview -> summary.
 export default function App() {
@@ -75,7 +115,13 @@ export default function App() {
           setSummary(s);
           setPhase("summary");
         } catch (sumErr) {
+          console.error("Summary fetch error:", sumErr);
           setError(String(sumErr));
+          setSummary({
+            chief_complaint: "Clinical intake completed",
+            hpi: "Intake completed. Note: backend summary generation returned an alert.",
+          });
+          setPhase("summary");
         }
       } else {
         setQuestionHistory((prev) => [...prev, question]);
@@ -304,74 +350,76 @@ export default function App() {
       <main className={`flex-1 w-full mx-auto px-4 sm:px-6 py-6 print:p-0 print:max-w-none ${
         phase === "dashboard" || phase === "summary" ? "max-w-6xl xl:max-w-7xl" : "max-w-3xl"
       }`}>
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
-            {error} — is the API running at {api.base}?
-          </div>
-        )}
-
-        {phase === "language" && (
-          <LanguageSelect
-            lang={lang}
-            ayushMode={ayushMode}
-            onToggleAyush={setAyushMode}
-            onChoose={chooseLanguage}
-          />
-        )}
-
-        {phase === "consent" && (
-          <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={goBack} />
-        )}
-
-        {phase === "interview" && question && (
-          <QuestionCard
-            lang={lang}
-            question={question}
-            busy={busy}
-            autoVoice={autoVoice}
-            onVoiceToggle={(val) => setAutoVoice(val)}
-            pendingConfirm={pendingConfirm}
-            onSubmit={submitAnswer}
-            onConfirmYes={confirmYes}
-            onConfirmNo={confirmNo}
-            onPrevious={goBack}
-          />
-        )}
-
-        {phase === "preparing_summary" && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_10px_35px_rgba(37,99,235,0.08)] border border-blue-100 p-10 text-center max-w-md mx-auto my-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-3xl animate-bounce-gentle text-blue-600">
-              ✨
+        <ErrorBoundary onReset={restart}>
+          {error && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
+              {error} — is the API running at {api.base}?
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Compiling intake history, verified symptoms, and constitutional cues for the clinician.
-            </p>
-          </div>
-        )}
+          )}
 
-        {phase === "dashboard" && summary && (
-          <DoctorDashboard
-            lang={lang}
-            sessionId={sessionId}
-            summary={summary}
-            redFlags={redFlags}
-            onOpenSummary={() => setPhase("summary")}
-            onRestart={restart}
-            onBack={goBack}
-          />
-        )}
+          {phase === "language" && (
+            <LanguageSelect
+              lang={lang}
+              ayushMode={ayushMode}
+              onToggleAyush={setAyushMode}
+              onChoose={chooseLanguage}
+            />
+          )}
 
-        {phase === "summary" && summary && (
-          <SummaryView
-            lang={lang}
-            sessionId={sessionId}
-            summary={summary}
-            redFlags={redFlags}
-            onRestart={restart}
-            onBack={goBack}
-          />
-        )}
+          {phase === "consent" && (
+            <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={goBack} />
+          )}
+
+          {phase === "interview" && question && (
+            <QuestionCard
+              lang={lang}
+              question={question}
+              busy={busy}
+              autoVoice={autoVoice}
+              onVoiceToggle={(val) => setAutoVoice(val)}
+              pendingConfirm={pendingConfirm}
+              onSubmit={submitAnswer}
+              onConfirmYes={confirmYes}
+              onConfirmNo={confirmNo}
+              onPrevious={goBack}
+            />
+          )}
+
+          {phase === "preparing_summary" && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_10px_35px_rgba(37,99,235,0.08)] border border-blue-100 p-10 text-center max-w-md mx-auto my-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-3xl animate-bounce-gentle text-blue-600">
+                ✨
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Compiling intake history, verified symptoms, and constitutional cues for the clinician.
+              </p>
+            </div>
+          )}
+
+          {phase === "dashboard" && summary && (
+            <DoctorDashboard
+              lang={lang}
+              sessionId={sessionId}
+              summary={summary}
+              redFlags={redFlags}
+              onOpenSummary={() => setPhase("summary")}
+              onRestart={restart}
+              onBack={goBack}
+            />
+          )}
+
+          {phase === "summary" && (
+            <SummaryView
+              lang={lang}
+              sessionId={sessionId}
+              summary={summary || {}}
+              redFlags={redFlags}
+              onRestart={restart}
+              onBack={goBack}
+            />
+          )}
+        </ErrorBoundary>
       </main>
 
       <footer className="text-center text-xs text-slate-400 py-3 print:hidden">

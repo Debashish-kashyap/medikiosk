@@ -187,13 +187,37 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               IMMEDIATE ATTENTION
             </span>
           </div>
-          <div className="space-y-1.5">
-            {redFlags.map((flag, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm font-bold text-red-800 bg-white/80 p-2.5 rounded-lg border border-red-200">
-                <span>⚠️</span>
-                <span>{flag}</span>
-              </div>
-            ))}
+          <div className="space-y-2">
+            {redFlags.map((flag, idx) => {
+              const isObj = typeof flag === "object" && flag !== null;
+              const label = isObj ? (flag.label || flag.id || "Clinical Red Flag Alert") : String(flag);
+              const action = isObj ? flag.action : null;
+              const priority = isObj ? flag.priority : null;
+
+              return (
+                <div key={flag?.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm font-bold text-red-800 bg-white/90 p-3 rounded-xl border border-red-200 shadow-xs">
+                  <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                    <span className="text-base shrink-0 mt-0.5 sm:mt-0">⚠️</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {priority && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-100 text-red-800 border border-red-300 font-extrabold">
+                            {priority}
+                          </span>
+                        )}
+                        <span className="text-red-950 font-extrabold leading-tight">{label}</span>
+                      </div>
+                      {action && (
+                        <div className="text-xs font-medium text-red-700 mt-1">
+                          <span className="font-bold uppercase tracking-wider text-[10px] text-red-900 mr-1.5">Action:</span>
+                          <span>{action}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -213,7 +237,9 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               </span>
             </div>
             <div className="text-xl font-extrabold text-slate-900">
-              {sum.chief_complaint || "No chief complaint recorded"}
+              {typeof sum.chief_complaint === "object" && sum.chief_complaint !== null
+                ? (Array.isArray(sum.chief_complaint) ? sum.chief_complaint.join(", ") : JSON.stringify(sum.chief_complaint))
+                : (sum.chief_complaint || "No chief complaint recorded")}
             </div>
           </div>
 
@@ -245,7 +271,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
                   </button>
                 )}
                 <span className="text-slate-400 font-mono text-[11px]">
-                  {hpi.length} {t(lang, "charCount")}
+                  {(hpi || "").length} {t(lang, "charCount")}
                 </span>
               </div>
             </div>
@@ -274,12 +300,12 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
                   <div className="flex flex-wrap gap-2">
                     {sum.review_of_systems.map((item, idx) => (
                       <span key={idx} className="bg-white border border-slate-200 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700">
-                        {item}
+                        {typeof item === "object" && item !== null ? JSON.stringify(item) : String(item)}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <div>{sum.review_of_systems}</div>
+                  <div>{typeof sum.review_of_systems === "object" && sum.review_of_systems !== null ? JSON.stringify(sum.review_of_systems) : String(sum.review_of_systems)}</div>
                 )
               ) : (
                 <span className="text-slate-400 italic">No positive findings on system review.</span>
@@ -306,14 +332,14 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
                   <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start justify-between gap-3 text-xs sm:text-sm">
                     <div className="space-y-0.5">
                       <div className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
-                        {vt.field.replace(/_/g, " ")}
+                        {vt.field ? vt.field.replace(/_/g, " ") : "voice intake"}
                       </div>
                       <div className="font-medium text-slate-800 italic">
                         "{vt.transcript}"
                       </div>
                     </div>
                     <span className="text-[10px] font-mono font-bold bg-white text-blue-800 px-2 py-0.5 rounded border border-blue-200 shrink-0">
-                      {Math.round(vt.confidence * 100)}% conf
+                      {Math.round((vt.confidence || 1.0) * 100)}% conf
                     </span>
                   </div>
                 ))}
@@ -336,7 +362,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
             {sum.drug_allergy && sum.drug_allergy !== "None" && sum.drug_allergy !== "None reported" ? (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 text-sm font-bold flex items-center gap-2">
                 <span className="text-lg">🚫</span>
-                <span>{sum.drug_allergy}</span>
+                <span>{typeof sum.drug_allergy === "object" ? JSON.stringify(sum.drug_allergy) : String(sum.drug_allergy)}</span>
               </div>
             ) : (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-xs font-semibold flex items-center gap-2">
@@ -358,13 +384,13 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
                     {sum.past_medical.map((m, i) => (
                       <li key={i} className="flex items-center gap-2 text-xs font-medium">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        <span>{m}</span>
+                        <span>{typeof m === "object" && m !== null ? JSON.stringify(m) : String(m)}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <div className="text-xs font-medium bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    {sum.past_medical}
+                    {typeof sum.past_medical === "object" && sum.past_medical !== null ? JSON.stringify(sum.past_medical) : String(sum.past_medical)}
                   </div>
                 )
               ) : (
@@ -389,28 +415,38 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               </div>
 
               <div className="space-y-2.5 text-xs">
-                {sum.ayush_profile.prakriti && (
+                {(sum.ayush_profile.prakriti_cue || sum.ayush_profile.prakriti) && (
                   <div>
                     <span className="font-bold text-blue-900 block">{t(lang, "ayushPrakriti")}:</span>
-                    <span className="text-slate-800 font-semibold">{sum.ayush_profile.prakriti}</span>
+                    <span className="text-slate-800 font-semibold">{sum.ayush_profile.prakriti_cue || sum.ayush_profile.prakriti}</span>
                   </div>
                 )}
-                {sum.ayush_profile.agni && (
+                {(sum.ayush_profile.ahara_shakti || sum.ayush_profile.agni) && (
                   <div>
                     <span className="font-bold text-blue-900 block">{t(lang, "ayushAgni")}:</span>
-                    <span className="text-slate-800 font-medium">{sum.ayush_profile.agni}</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.ahara_shakti || sum.ayush_profile.agni}</span>
                   </div>
                 )}
-                {sum.ayush_profile.koshtha && (
+                {(sum.ayush_profile.vikriti_current || sum.ayush_profile.koshtha) && (
                   <div>
-                    <span className="font-bold text-blue-900 block">{t(lang, "ayushKoshtha")}:</span>
-                    <span className="text-slate-800 font-medium">{sum.ayush_profile.koshtha}</span>
+                    <span className="font-bold text-blue-900 block">{t(lang, "ayushKoshtha") || "Sleep & Bowel / Vikriti"}:</span>
+                    <span className="text-slate-800 font-medium">
+                      {Array.isArray(sum.ayush_profile.vikriti_current || sum.ayush_profile.koshtha)
+                        ? (sum.ayush_profile.vikriti_current || sum.ayush_profile.koshtha).join(", ")
+                        : String(sum.ayush_profile.vikriti_current || sum.ayush_profile.koshtha)}
+                    </span>
                   </div>
                 )}
                 {sum.ayush_profile.satva && (
                   <div>
                     <span className="font-bold text-blue-900 block">{t(lang, "ayushSatva")}:</span>
                     <span className="text-slate-800 font-medium">{sum.ayush_profile.satva}</span>
+                  </div>
+                )}
+                {sum.ayush_profile.satmya && (
+                  <div>
+                    <span className="font-bold text-blue-900 block">Satmya (Adaptability):</span>
+                    <span className="text-slate-800 font-medium">{sum.ayush_profile.satmya}</span>
                   </div>
                 )}
               </div>
