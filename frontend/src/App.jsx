@@ -189,34 +189,34 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-slate-50 print:bg-white">
-      <header className="bg-white border-b border-slate-200/90 border-t-4 border-t-teal-600 px-6 py-3 flex items-center justify-between shadow-xs print:hidden">
-        <div className="flex items-center gap-4">
-          {/* Free Logo Mark & Name - Stable Placement on Top-Left */}
+    <div className="min-h-full flex flex-col bg-transparent print:bg-white">
+      <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/90 border-t-4 border-t-blue-600 px-6 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between shadow-[0_2px_15px_rgba(37,99,235,0.05)] print:hidden">
+        <div className="flex items-center gap-5">
+          {/* Free Logo Mark & Name - Bigger size & Stable Placement on Top-Left */}
           <div className="flex items-center">
             <img
               src={logoMark}
               alt="MediKiosk Logo"
-              className="h-14 w-14 sm:h-16 sm:w-16 object-contain shrink-0"
+              className="h-18 w-18 sm:h-20 sm:w-20 object-contain shrink-0 drop-shadow-xs"
             />
             <img
               src={logoName}
               alt="MediKiosk"
-              className="h-8 sm:h-9.5 w-auto object-contain shrink-0 -ml-1.5"
+              className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2 drop-shadow-xs"
             />
           </div>
 
           <div className="hidden xl:block">
-            <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-3 border-l border-slate-200">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-4 border-l border-slate-200">
               {t(lang, "tagline")}
             </div>
           </div>
 
           {phase !== "language" && (
-            <div className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
+            <div className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition shadow-xs ${
               ayushMode
                 ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                : "bg-blue-50 text-blue-800 border-blue-300"
+                : "bg-blue-50 text-blue-700 border-blue-200"
             }`}>
               <span>{ayushMode ? "🌿" : "🩺"}</span>
               <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
@@ -224,11 +224,11 @@ export default function App() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {phase !== "language" && (
             <button
               onClick={goBack}
-              className="text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl px-3.5 py-2 border border-slate-200/80 transition flex items-center gap-1.5 shadow-xs"
+              className="text-xs sm:text-sm bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold rounded-full px-4 py-2 border border-slate-200/90 hover:border-blue-300 transition shadow-xs flex items-center gap-1.5"
               title="Go back to previous screen"
             >
               <span className="text-base font-bold leading-none">←</span>
@@ -239,7 +239,7 @@ export default function App() {
             <button
               onClick={openDoctorDashboard}
               disabled={busy}
-              className="text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl px-4 py-2.5 shadow-sm transition flex items-center gap-1.5"
+              className="text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-full px-5 py-2.5 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition flex items-center gap-2"
               title="Open Physician Summary Dashboard"
             >
               <span>👨‍⚕️</span>
@@ -247,7 +247,7 @@ export default function App() {
             </button>
           )}
           {phase !== "language" && (
-            <button onClick={restart} className="text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl px-3 py-2 border border-slate-200 transition">
+            <button onClick={restart} className="text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-600 font-medium rounded-full px-3.5 py-2 border border-slate-200 transition">
               {t(lang, "restart")}
             </button>
           )}
@@ -294,8 +294,8 @@ export default function App() {
         )}
 
         {phase === "preparing_summary" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-10 text-center max-w-md mx-auto my-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-3xl animate-bounce-gentle">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_10px_35px_rgba(37,99,235,0.08)] border border-blue-100 p-10 text-center max-w-md mx-auto my-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-3xl animate-bounce-gentle text-blue-600">
               ✨
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>

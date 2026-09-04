@@ -65,7 +65,7 @@ export default function AccessLogModal({ lang, sessionId, onClose }) {
         {/* Header */}
         <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center text-teal-300 font-bold text-xl">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-xl">
               🛡️
             </div>
             <div>
@@ -73,7 +73,7 @@ export default function AccessLogModal({ lang, sessionId, onClose }) {
                 {t(lang, "accessLogModalTitle")}
               </h3>
               <p className="text-xs text-slate-400">
-                Estonia e-Health transparency model · Session: <span className="font-mono text-teal-300">{sessionId}</span>
+                Estonia e-Health transparency model · Session: <span className="font-mono text-blue-300">{sessionId}</span>
               </p>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function AccessLogModal({ lang, sessionId, onClose }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
               {Object.entries(rightsData.rights || {}).map(([key, desc]) => (
                 <div key={key} className="bg-white p-2.5 rounded-lg border border-slate-200">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-teal-700 block mb-0.5">
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-blue-600 block mb-0.5">
                     {key.replace("_", " ")}
                   </span>
                   <span className="text-slate-700">{desc}</span>
@@ -199,7 +199,7 @@ export default function AccessLogModal({ lang, sessionId, onClose }) {
         <div className="flex-1 overflow-y-auto p-4 sm:p-5">
           {loading && (
             <div className="text-center py-12 text-slate-500 flex flex-col items-center gap-3">
-              <svg className="animate-spin h-8 w-8 text-teal-600" viewBox="0 0 24 24">
+              <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
@@ -254,7 +254,7 @@ export default function AccessLogModal({ lang, sessionId, onClose }) {
                           <span
                             className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider ${
                               isDoctor
-                                ? "bg-teal-100 text-teal-800"
+                                ? "bg-indigo-100 text-indigo-800"
                                 : isPatient
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-slate-100 text-slate-700"

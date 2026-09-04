@@ -68,11 +68,11 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
     <div className="space-y-6 max-w-7xl mx-auto">
       {loginOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+          <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">{t(lang, "dashboardSigninBadge")}</p>
-                <h2 className="mt-2 text-xl font-extrabold text-slate-900">{t(lang, "dashboardSigninTitle")}</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{t(lang, "dashboardSigninBadge")}</p>
+                <h2 className="mt-2 text-2xl font-extrabold text-slate-900">{t(lang, "dashboardSigninTitle")}</h2>
               </div>
               <button type="button" onClick={() => setLoginOpen(false)} className="text-2xl leading-none text-slate-500">×</button>
             </div>
@@ -80,13 +80,13 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
             <form onSubmit={handleLogin} className="mt-5 space-y-4">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{t(lang, "dashboardUserId")}</label>
-                <input value={userId} onChange={(e) => setUserId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none" />
+                <input value={userId} onChange={(e) => setUserId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:border-blue-600 focus:outline-none" />
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{t(lang, "dashboardPassword")}</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:outline-none" />
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:border-blue-600 focus:outline-none" />
               </div>
-              <button type="submit" className="w-full rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition">
+              <button type="submit" className="w-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-md shadow-blue-500/25 transition">
                 {t(lang, "dashboardSigninButton")}
               </button>
             </form>
@@ -94,26 +94,26 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_4px_25px_rgba(15,23,42,0.05)] border border-blue-100/80 p-5 sm:p-7">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="flex items-center hidden sm:flex">
               <img
                 src={logoMark}
                 alt="MediKiosk"
-                className="h-14 w-14 object-contain shrink-0"
+                className="h-18 w-18 sm:h-20 sm:w-20 object-contain shrink-0"
               />
               <img
                 src={logoName}
                 alt="MediKiosk"
-                className="h-8.5 w-auto object-contain shrink-0 -ml-1.5"
+                className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2"
               />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">{t(lang, "dashboardBadge")}</p>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900">{t(lang, "dashboardTitle")}</h1>
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1 text-sm font-semibold text-teal-800">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500" />
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{t(lang, "dashboardBadge")}</p>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{t(lang, "dashboardTitle")}</h1>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-sm font-semibold text-blue-800">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
                 <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
               </div>
               <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
@@ -121,7 +121,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2">
               <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{t(lang, "dashboardRoleLabel")}</div>
               <div className="mt-1 flex items-center gap-1.5">
                 {[
@@ -136,8 +136,8 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                       setRole(option.key);
                       setLoginOpen(option.key === "doctor");
                     }}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
-                      role === option.key ? "bg-teal-600 text-white" : "bg-white text-slate-700 border border-slate-200"
+                    className={`rounded-xl px-3 py-1 text-xs font-bold transition ${
+                      role === option.key ? "bg-blue-600 text-white shadow-xs" : "bg-white text-slate-700 border border-slate-200"
                     }`}
                   >
                     {option.label}
@@ -150,17 +150,17 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
               <button
                 type="button"
                 onClick={onBack}
-                className="rounded-xl border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-800 px-4 py-2.5 text-sm font-bold shadow-sm transition flex items-center gap-1.5"
+                className="rounded-full border border-slate-200 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-4 py-2.5 text-sm font-bold shadow-xs transition flex items-center gap-1.5"
                 title="Return to patient kiosk"
               >
                 <span>←</span>
                 <span>{t(lang, "backToKiosk")}</span>
               </button>
             )}
-            <button type="button" onClick={onOpenSummary} className="rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition">
+            <button type="button" onClick={onOpenSummary} className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition">
               {t(lang, "dashboardOpenSummary")}
             </button>
-            <button type="button" onClick={onRestart} className="rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition">
+            <button type="button" onClick={onRestart} className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-xs transition">
               {t(lang, "restart")}
             </button>
           </div>
@@ -190,7 +190,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t(lang, "dashboardSearchPlaceholder")}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-100 focus:outline-none"
               />
               {[
                 { key: "all", label: t(lang, "dashboardFilterAll") },
@@ -218,7 +218,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                 key={patient.id}
                 type="button"
                 onClick={() => setSelectedId(patient.id)}
-                className={`w-full rounded-xl border bg-slate-50 p-3.5 text-left transition ${selectedId === patient.id ? "border-teal-400 bg-teal-50" : "border-slate-200 hover:border-slate-300"}`}
+                className={`w-full rounded-2xl border bg-slate-50/80 p-4 text-left transition ${selectedId === patient.id ? "border-blue-600 bg-gradient-to-r from-blue-50/80 to-indigo-50/40 shadow-sm ring-1 ring-blue-500/30" : "border-slate-200 hover:border-slate-300"}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
@@ -296,7 +296,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                 <select
                   value={selectedPatient?.priority || "routine"}
                   onChange={(e) => updatePatientPriority(selectedPatient.id, e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-teal-500 focus:outline-none"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none"
                 >
                   <option value="critical">{t(lang, "dashboardPriorityHigh")}</option>
                   <option value="review">{t(lang, "dashboardPriorityReview")}</option>
