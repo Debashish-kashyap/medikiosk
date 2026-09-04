@@ -145,38 +145,30 @@ def _interpret_yes_no(node: dict, text_norm: str, lang: str) -> dict:
 
 
 def _match_candidate(cand: str, text: str) -> float:
-    """Return match confidence between a candidate alias/label and input text.
-    Handles exact, word boundary, partial (50% heard), word overlap, and fuzzy matches.
-    """
     c = cand.strip().lower()
     t = text.strip().lower()
     if not c or not t:
         return 0.0
 
-    # 1. Exact match
     if c == t:
         return 0.98
 
-    # 2. Exact whole-word boundary match
     escaped = re.escape(c)
     pattern = rf"(?:^|\W){escaped}(?:$|\W)"
     if re.search(pattern, t):
         return 0.92 if len(c) > 2 else 0.82
 
-    # 3. Substring match (candidate in text, e.g. 'chest' in 'I have chest pain')
     if c in t:
         ratio = len(c) / len(t)
         return max(0.82, 0.72 + 0.25 * ratio)
 
-    # 4. Partial word heard (text in candidate, e.g. 'chest' in 'chest pain' or 'diab' in 'diabetes')
     if t in c:
         ratio = len(t) / len(c)
-        if ratio >= 0.50:  # 50% heard
+        if ratio >= 0.50:
             return max(0.80, 0.68 + 0.30 * ratio)
         elif ratio >= 0.30 and len(t) >= 3:
             return 0.65
 
-    # 5. Word-by-word overlap (e.g. 'blood pressure' vs 'high blood pressure')
     c_words = [w for w in re.split(r"\W+", c) if len(w) > 1]
     t_words = [w for w in re.split(r"\W+", t) if len(w) > 1]
     if c_words and t_words:
@@ -186,18 +178,49 @@ def _match_candidate(cand: str, text: str) -> float:
             if overlap >= 0.50:
                 return 0.88
 
-    # 6. Fuzzy string similarity (full phrase typos)
     sim = difflib.SequenceMatcher(None, c, t).ratio()
     if sim >= 0.70:
         return round(0.60 + (sim - 0.70) * 0.80, 2)
 
-    # 7. Fuzzy word-to-word similarity (single word typo e.g. 'fevr' vs 'fever')
     if c_words and t_words:
         max_word_sim = max(difflib.SequenceMatcher(None, cw, tw).ratio() for cw in c_words for tw in t_words)
         if max_word_sim >= 0.75:
             return round(0.60 + (max_word_sim - 0.75) * 0.80, 2)
 
+    # NEW: phonetic fallback — catches pronunciation-driven ASR errors that
+    # look nothing alike in spelling ("thane belt" vs "thin build") but
+    # sound close. Uses Double Metaphone; falls back cleanly if unavailable.
+    phon_score = _phonetic_match(c, t)
+    if phon_score > 0:
+        return phon_score
+
     return 0.0
+
+
+def _phonetic_match(cand: str, text: str) -> float:
+    """Compare candidate and text by phonetic code, word-by-word."""
+    try:
+        from metaphone import doublemetaphone
+    except ImportError:
+        return 0.0  # graceful no-op if the package isn't installed
+
+    c_words = [w for w in re.split(r"\W+", cand) if w]
+    t_words = [w for w in re.split(r"\W+", text) if w]
+    if not c_words or not t_words:
+        return 0.0
+
+    best = 0.0
+    for cw in c_words:
+        c_codes = doublemetaphone(cw)
+        for tw in t_words:
+            t_codes = doublemetaphone(tw)
+            # Any overlap between primary/secondary metaphone codes = phonetic match
+            if any(cc and cc == tc for cc in c_codes for tc in t_codes):
+                # Weight by how much of the word matched, so "thin"↔"thane"
+                # (short, common word) scores lower than a longer distinctive match.
+                weight = min(len(cw), len(tw)) / max(len(cw), len(tw))
+                best = max(best, 0.55 + 0.20 * weight)
+    return round(best, 2) if best >= 0.55 else 0.0
 
 
 def _interpret_aliases(node: dict, text_norm: str, lang: str) -> dict:

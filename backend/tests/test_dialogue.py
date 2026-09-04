@@ -128,3 +128,30 @@ def test_ayush_mode_skip_option():
     assert session["ayush_done"] is True
     assert r_skip["next_question"]["node_id"] == "past_history"
 
+
+def test_phonetic_fallback_match():
+    from app.core import summary_builder
+    from app.core.llm_mapper import _match_candidate, _phonetic_match
+
+    # Verify unit-level phonetic matching ("thane belt" vs "thin build")
+    score = _phonetic_match("thin build", "thane belt")
+    assert score >= 0.55
+    assert _match_candidate("thin build", "thane belt") == score
+
+    # End-to-end voice dialogue test: near-miss pronunciation resolves to valid option value
+    # and summary pipeline renders canonical resolved label
+    session = session_store.create_session(language="en", ayush_mode=True)
+    dialogue_engine.current_question(session)
+    _answer(session, "chief_complaint", touch_value="cough")
+    _answer(session, "ayush_intro", touch_value="continue")
+
+    # Spoken text "thane belt" phonetically resolves to vata_leaning
+    r = _answer(session, "ayush_prakriti", text="thane belt")
+    assert r["status"] == "accepted"
+    assert r["stored"]["value"] == "vata_leaning"
+
+    # Confirm the summary pipeline renders only the resolved, correctly-spelled label
+    summary = summary_builder.build_summary(session)
+    assert summary["ayush_profile"] is not None
+    assert "Thin build" in summary["ayush_profile"]["prakriti_cue"]
+
