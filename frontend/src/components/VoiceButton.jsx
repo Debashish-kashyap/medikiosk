@@ -499,8 +499,8 @@ export default function VoiceButton({
             <button
               type="button"
               onClick={() => setEngineMode("webspeech")}
-              className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "webspeech"
-                ? "bg-indigo-700 text-white font-bold shadow-sm"
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition ${engineMode === "webspeech"
+                ? "bg-indigo-600 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
             >
@@ -510,8 +510,8 @@ export default function VoiceButton({
           <button
             type="button"
             onClick={() => setEngineMode("server")}
-            className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "server"
-              ? "bg-blue-600 text-white font-bold shadow-sm"
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${engineMode === "server"
+              ? "bg-blue-600 text-white shadow-xs"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
           >
@@ -527,7 +527,7 @@ export default function VoiceButton({
               onChange={(e) => onAutoVoiceToggle(e.target.checked)}
               className="accent-blue-600 rounded"
             />
-            <span>{lang === "hi" ? "अगले सवाल पर स्वतः सुनें" : "Auto-listen next question"}</span>
+            <span>{t(lang, "autoListen")}</span>
           </label>
         )}
       </div>

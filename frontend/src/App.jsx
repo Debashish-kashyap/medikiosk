@@ -193,8 +193,8 @@ export default function App() {
 
   return (
     <div className="min-h-full flex flex-col bg-transparent print:bg-white">
-      <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/90 border-t-4 border-t-blue-600 px-6 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between shadow-[0_2px_15px_rgba(37,99,235,0.05)] print:hidden">
-        <div className="flex items-center gap-5">
+      <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/90 border-t-4 border-t-blue-600 px-5 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between shadow-[0_2px_15px_rgba(37,99,235,0.05)] print:hidden">
+        <div className="flex items-center gap-4 sm:gap-5">
           {/* Free Logo Mark & Name - Clickable Home Link to Landing Page */}
           <button
             type="button"
@@ -206,35 +206,51 @@ export default function App() {
             <img
               src={logoMark}
               alt="MediKiosk Logo"
-              className="h-18 w-18 sm:h-20 sm:w-20 object-contain shrink-0 drop-shadow-xs"
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain shrink-0 drop-shadow-sm"
             />
             <img
               src={logoName}
               alt="MediKiosk"
-              className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2 drop-shadow-xs"
+              className="h-8 sm:h-9 w-auto object-contain shrink-0 -ml-1.5 drop-shadow-sm"
             />
           </button>
 
           <div className="hidden xl:block">
             <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-4 border-l border-slate-200">
-              {t(lang, "tagline")}
+              {phase === "dashboard"
+                ? "Clinician workspace & patient triage"
+                : phase === "summary"
+                ? "Clinical summary & physician sign-off"
+                : t(lang, "tagline")}
             </div>
           </div>
 
-          {phase !== "language" && (
-            <div className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition shadow-xs ${
-              ayushMode
-                ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                : "bg-blue-50 text-blue-700 border-blue-200"
-            }`}>
-              <span>{ayushMode ? "🌿" : "🩺"}</span>
-              <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
+          {phase === "dashboard" ? (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border border-blue-200 bg-blue-50 text-blue-800 transition shadow-xs">
+              <span>👨‍⚕️</span>
+              <span>Clinician Workspace</span>
             </div>
+          ) : phase === "summary" ? (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border border-indigo-200 bg-indigo-50 text-indigo-800 transition shadow-xs">
+              <span>📋</span>
+              <span>Physician Review</span>
+            </div>
+          ) : (
+            phase !== "language" && (
+              <div className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition shadow-xs ${
+                ayushMode
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                  : "bg-blue-50 text-blue-700 border-blue-200"
+              }`}>
+                <span>{ayushMode ? "🌿" : "🩺"}</span>
+                <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
+              </div>
+            )
           )}
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {phase !== "language" && (
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {phase !== "language" && phase !== "dashboard" && phase !== "summary" && (
             <button
               onClick={goBack}
               className="text-xs sm:text-sm bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold rounded-full px-4 py-2 border border-slate-200/90 hover:border-blue-300 transition shadow-xs flex items-center gap-1.5"
@@ -244,19 +260,37 @@ export default function App() {
               <span>{t(lang, "back")}</span>
             </button>
           )}
+
           {phase !== "summary" && phase !== "dashboard" && (
             <button
               onClick={openDoctorDashboard}
               disabled={busy}
-              className="text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-full px-5 py-2.5 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition flex items-center gap-2"
+              className="text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-full px-4 sm:px-5 py-2 sm:py-2.5 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition flex items-center gap-1.5 sm:gap-2"
               title="Open Physician Summary Dashboard"
             >
               <span>👨‍⚕️</span>
               <span>Doctor Dashboard</span>
             </button>
           )}
-          {phase !== "language" && (
-            <button onClick={restart} className="text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-600 font-medium rounded-full px-3.5 py-2 border border-slate-200 transition">
+
+          {phase === "summary" && (
+            <button
+              onClick={openDoctorDashboard}
+              disabled={busy}
+              className="text-xs sm:text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-full px-4 py-2 border border-blue-200 transition flex items-center gap-1.5"
+              title="Return to Doctor Dashboard"
+            >
+              <span>👨‍⚕️</span>
+              <span>Dashboard</span>
+            </button>
+          )}
+
+          {phase !== "language" && phase !== "dashboard" && (
+            <button
+              onClick={restart}
+              className="text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-600 font-medium rounded-full px-3.5 py-2 border border-slate-200 transition"
+              title="Start intake for a new patient"
+            >
               {t(lang, "restart")}
             </button>
           )}

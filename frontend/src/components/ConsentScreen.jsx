@@ -90,14 +90,19 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
 
       {localError && <div className="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm font-medium">{localError}</div>}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button type="button" className="tap sm:w-44 py-4 text-base" onClick={readConsentAloud}>
-          🔊 {t(lang, "readAloud")}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+        <button type="button" className="tap sm:w-48 py-4 text-base font-bold flex items-center justify-center gap-2" onClick={readConsentAloud}>
+          <span>🔊</span>
+          <span>{t(lang, "readAloud")}</span>
         </button>
-        <button className="tap flex-1 py-5 text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 border-transparent hover:border-transparent active:scale-[0.99]" disabled={busy} onClick={handleSubmit}>
+        <button
+          className="tap flex-1 py-4 text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 border-transparent hover:border-transparent active:scale-[0.99] flex items-center justify-center"
+          disabled={busy}
+          onClick={handleSubmit}
+        >
           {busy ? "…" : t(lang, "consentAgree")}
         </button>
-        <button className="tap sm:w-36 py-4 text-base" disabled={busy} onClick={onBack}>
+        <button type="button" className="tap sm:w-32 py-4 text-base font-bold flex items-center justify-center" disabled={busy} onClick={onBack}>
           {t(lang, "back")}
         </button>
       </div>

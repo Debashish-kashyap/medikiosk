@@ -106,46 +106,32 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
   return (
     <div className="space-y-6 print:space-y-4 print:text-black">
       {/* Top Clinical Header & Action Toolbar */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-7 shadow-[0_4px_25px_rgba(15,23,42,0.05)] border border-blue-100/80 flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-none print:shadow-none print:p-0">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={onRestart}
-            className="flex items-center text-left focus:outline-none cursor-pointer hover:opacity-90 active:scale-[0.98] transition print:pointer-events-none"
-            title="Return to Home / Landing Page"
-            aria-label="MediKiosk Home"
-          >
-            <img
-              src={logoMark}
-              alt="MediKiosk"
-              className="h-18 w-18 sm:h-20 sm:w-20 object-contain shrink-0"
-            />
-            <img
-              src={logoName}
-              alt="MediKiosk"
-              className="h-10 sm:h-12 w-auto object-contain shrink-0 -ml-2"
-            />
-          </button>
-          <div>
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200/60">
-                {t(lang, "forPhysician")}
-              </span>
-              <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full border border-slate-200">
-                ID: {sessionId || "N/A"}
-              </span>
-              <span className="text-xs text-slate-500">
-                {currentDate}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {t(lang, "summaryTitle")}
-            </h1>
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-7 shadow-[0_4px_25px_rgba(15,23,42,0.05)] border border-blue-100/80 flex flex-col md:flex-row md:items-center justify-between gap-5 print:border-none print:shadow-none print:p-0">
+        <div className="flex-1 min-w-0">
+          {/* Print-only branding */}
+          <div className="hidden print:flex items-center gap-3 mb-3">
+            <img src={logoMark} alt="MediKiosk" className="h-10 w-10 object-contain" />
+            <img src={logoName} alt="MediKiosk" className="h-6 w-auto object-contain" />
           </div>
+
+          <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
+            <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200/70">
+              {t(lang, "forPhysician")}
+            </span>
+            <span className="text-xs font-mono bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200 font-semibold">
+              ID: {sessionId || "N/A"}
+            </span>
+            <span className="text-xs text-slate-500 font-medium">
+              {currentDate}
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {t(lang, "summaryTitle")}
+          </h1>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap print:hidden">
+        <div className="flex items-center gap-2.5 flex-wrap print:hidden shrink-0">
           {onBack && (
             <button
               type="button"
@@ -179,7 +165,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
           <button
             type="button"
             onClick={onRestart}
-            className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold transition flex items-center gap-1.5 shadow-xs"
+            className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold transition flex items-center gap-1.5 shadow-xs"
           >
             <span>🔄</span>
             <span>{t(lang, "restart")}</span>
@@ -219,10 +205,10 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
           {/* Chief Complaint Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 {t(lang, "chiefComplaint")}
               </span>
-              <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
                 Verified
               </span>
             </div>
