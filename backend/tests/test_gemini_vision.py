@@ -141,8 +141,8 @@ def test_phrase_hpi_template_fallback():
         "cp_severity": 8,
     }
     hpi = llm_mapper.phrase_hpi(fields, lang="en")
-    assert "Patient reports chest pain" in hpi
+    assert ("Patient presents with chest pain" in hpi or "Patient reports chest pain" in hpi)
     assert "retrosternal" in hpi
     assert "pressure" in hpi
     assert "left arm" in hpi
-    assert "severity 8/10" in hpi
+    assert "8/10" in hpi

@@ -418,13 +418,13 @@ export default function VoiceButton({
         type="button"
         onClick={toggle}
         disabled={disabled || processing}
-        className={`w-full rounded-2xl py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-md flex items-center justify-center gap-3 relative overflow-hidden ${processing
+        className={`w-full rounded-full py-6 px-4 text-xl font-bold text-white transition-all transform active:scale-[0.99] shadow-lg flex items-center justify-center gap-3 relative overflow-hidden ${processing
           ? "bg-slate-700 cursor-wait"
           : isSpeaking
             ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 ring-4 ring-amber-300 shadow-lg cursor-pointer"
             : listening
-              ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse"
-              : "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 hover:shadow-lg"
+              ? "bg-gradient-to-r from-red-600 to-rose-600 ring-4 ring-red-300 animate-pulse shadow-red-500/30"
+              : "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/35"
           } disabled:opacity-50`}
       >
         {/* Live Audio Level Wave / Glow Background */}
@@ -499,8 +499,8 @@ export default function VoiceButton({
             <button
               type="button"
               onClick={() => setEngineMode("webspeech")}
-              className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "webspeech"
-                ? "bg-indigo-700 text-white font-bold shadow-sm"
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition ${engineMode === "webspeech"
+                ? "bg-indigo-600 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
             >
@@ -510,8 +510,8 @@ export default function VoiceButton({
           <button
             type="button"
             onClick={() => setEngineMode("server")}
-            className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] transition ${engineMode === "server"
-              ? "bg-teal-700 text-white font-bold shadow-sm"
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${engineMode === "server"
+              ? "bg-blue-600 text-white shadow-xs"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
           >
@@ -525,9 +525,9 @@ export default function VoiceButton({
               type="checkbox"
               checked={autoVoice || false}
               onChange={(e) => onAutoVoiceToggle(e.target.checked)}
-              className="accent-teal-600 rounded"
+              className="accent-blue-600 rounded"
             />
-            <span>{lang === "hi" ? "अगले सवाल पर स्वतः सुनें" : "Auto-listen next question"}</span>
+            <span>{t(lang, "autoListen")}</span>
           </label>
         )}
       </div>

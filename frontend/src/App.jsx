@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api } from "./api";
 import { t } from "./i18n";
+import logoMark from "./assets/logo-mark.png";
+import logoName from "./assets/logo-name.png";
 import LanguageSelect from "./components/LanguageSelect.jsx";
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import QuestionCard from "./components/QuestionCard.jsx";
@@ -13,8 +15,10 @@ export default function App() {
   const [lang, setLang] = useState("en");
   const [ayushMode, setAyushMode] = useState(false);
   const [phase, setPhase] = useState("language");
+  const [prevPhase, setPrevPhase] = useState("language");
   const [sessionId, setSessionId] = useState(null);
   const [question, setQuestion] = useState(null);
+  const [questionHistory, setQuestionHistory] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
   const [pendingConfirm, setPendingConfirm] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -25,6 +29,7 @@ export default function App() {
   function chooseLanguage(code, mode) {
     setLang(code);
     if (typeof mode === "boolean") setAyushMode(mode);
+    setPrevPhase("language");
     setPhase("consent");
   }
 
@@ -35,7 +40,9 @@ export default function App() {
       const res = await api.createSession(lang, ayushMode);
       setSessionId(res.session_id);
       setQuestion(res.question);
+      setQuestionHistory([]);
       await api.giveConsent(res.session_id, true, abhaId, otp);
+      setPrevPhase("consent");
       setPhase("interview");
     } catch (e) {
       setError(String(e));
@@ -60,6 +67,7 @@ export default function App() {
       setPendingConfirm(null);
       if (res.red_flags_all) setRedFlags(res.red_flags_all);
       if (res.done) {
+        setPrevPhase("interview");
         setPhase("preparing_summary");
         setQuestion(null);
         try {
@@ -70,6 +78,7 @@ export default function App() {
           setError(String(sumErr));
         }
       } else {
+        setQuestionHistory((prev) => [...prev, question]);
         setQuestion(res.next_question);
       }
     } catch (e) {
@@ -79,11 +88,37 @@ export default function App() {
     }
   }
 
+  function goBack() {
+    setError(null);
+    if (phase === "dashboard") {
+      setPhase(prevPhase || "language");
+    } else if (phase === "summary") {
+      if (questionHistory.length > 0) {
+        const lastQ = questionHistory[questionHistory.length - 1];
+        setQuestion(lastQ);
+        setPhase("interview");
+      } else {
+        setPhase("language");
+      }
+    } else if (phase === "interview") {
+      if (questionHistory.length > 0) {
+        const lastQ = questionHistory[questionHistory.length - 1];
+        setQuestionHistory((prev) => prev.slice(0, -1));
+        setQuestion(lastQ);
+      } else {
+        setPhase("consent");
+      }
+    } else if (phase === "consent") {
+      setPhase("language");
+    }
+  }
+
   const confirmYes = () =>
     submitAnswer({ touch_value: pendingConfirm.interpreted_value, confirmed: true });
   const confirmNo = () => setPendingConfirm(null);
 
   async function openDoctorDashboard() {
+    setPrevPhase(phase);
     setBusy(true);
     setError(null);
     try {
@@ -142,9 +177,14 @@ export default function App() {
   }
 
   function restart() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     setPhase("language");
+    setPrevPhase("language");
     setSessionId(null);
     setQuestion(null);
+    setQuestionHistory([]);
     setRedFlags([]);
     setPendingConfirm(null);
     setSummary(null);
@@ -152,38 +192,105 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-slate-50 print:bg-white">
-      <header className="bg-kiosk-primary text-white px-6 py-4 flex items-center justify-between shadow print:hidden">
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="text-2xl font-bold">{t(lang, "appTitle")}</div>
-            <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
-          </div>
-          {phase !== "language" && (
-            <div className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
-              ayushMode
-                ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40"
-                : "bg-blue-500/20 text-blue-200 border-blue-400/40"
-            }`}>
-              <span>{ayushMode ? "🌿" : "🩺"}</span>
-              <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
+    <div className="min-h-full flex flex-col bg-transparent print:bg-white">
+      <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/90 border-t-4 border-t-blue-600 px-5 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between shadow-[0_2px_15px_rgba(37,99,235,0.05)] print:hidden">
+        <div className="flex items-center gap-4 sm:gap-5">
+          {/* Free Logo Mark & Name - Clickable Home Link to Landing Page */}
+          <button
+            type="button"
+            onClick={restart}
+            className="flex items-center text-left focus:outline-none cursor-pointer transition hover:opacity-90 active:scale-[0.98]"
+            title="Return to Home / Landing Page"
+            aria-label="MediKiosk Home"
+          >
+            <img
+              src={logoMark}
+              alt="MediKiosk Logo"
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain shrink-0 drop-shadow-sm"
+            />
+            <img
+              src={logoName}
+              alt="MediKiosk"
+              className="h-8 sm:h-9 w-auto object-contain shrink-0 -ml-1.5 drop-shadow-sm"
+            />
+          </button>
+
+          <div className="hidden xl:block">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-4 border-l border-slate-200">
+              {phase === "dashboard"
+                ? "Clinician workspace & patient triage"
+                : phase === "summary"
+                ? "Clinical summary & physician sign-off"
+                : t(lang, "tagline")}
             </div>
+          </div>
+
+          {phase === "dashboard" ? (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border border-blue-200 bg-blue-50 text-blue-800 transition shadow-xs">
+              <span>👨‍⚕️</span>
+              <span>Clinician Workspace</span>
+            </div>
+          ) : phase === "summary" ? (
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border border-indigo-200 bg-indigo-50 text-indigo-800 transition shadow-xs">
+              <span>📋</span>
+              <span>Physician Review</span>
+            </div>
+          ) : (
+            phase !== "language" && (
+              <div className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition shadow-xs ${
+                ayushMode
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                  : "bg-blue-50 text-blue-700 border-blue-200"
+              }`}>
+                <span>{ayushMode ? "🌿" : "🩺"}</span>
+                <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
+              </div>
+            )
           )}
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {phase !== "language" && phase !== "dashboard" && phase !== "summary" && (
+            <button
+              onClick={goBack}
+              className="text-xs sm:text-sm bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold rounded-full px-4 py-2 border border-slate-200/90 hover:border-blue-300 transition shadow-xs flex items-center gap-1.5"
+              title="Go back to previous screen"
+            >
+              <span className="text-base font-bold leading-none">←</span>
+              <span>{t(lang, "back")}</span>
+            </button>
+          )}
+
           {phase !== "summary" && phase !== "dashboard" && (
             <button
               onClick={openDoctorDashboard}
               disabled={busy}
-              className="text-xs sm:text-sm bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg px-3.5 py-2 shadow-sm transition flex items-center gap-1.5"
+              className="text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-full px-4 sm:px-5 py-2 sm:py-2.5 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition flex items-center gap-1.5 sm:gap-2"
               title="Open Physician Summary Dashboard"
             >
               <span>👨‍⚕️</span>
               <span>Doctor Dashboard</span>
             </button>
           )}
-          {phase !== "language" && (
-            <button onClick={restart} className="text-xs sm:text-sm bg-white/15 rounded-lg px-3 py-2 hover:bg-white/25 transition">
+
+          {phase === "summary" && (
+            <button
+              onClick={openDoctorDashboard}
+              disabled={busy}
+              className="text-xs sm:text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-full px-4 py-2 border border-blue-200 transition flex items-center gap-1.5"
+              title="Return to Doctor Dashboard"
+            >
+              <span>👨‍⚕️</span>
+              <span>Dashboard</span>
+            </button>
+          )}
+
+          {phase !== "language" && phase !== "dashboard" && (
+            <button
+              onClick={restart}
+              className="text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-600 font-medium rounded-full px-3.5 py-2 border border-slate-200 transition"
+              title="Start intake for a new patient"
+            >
               {t(lang, "restart")}
             </button>
           )}
@@ -194,7 +301,9 @@ export default function App() {
         <RedFlagBanner lang={lang} flags={redFlags} />
       )}
 
-      <main className={`flex-1 w-full mx-auto px-4 py-6 print:p-0 print:max-w-none ${phase === "summary" ? "max-w-5xl" : "max-w-3xl"}`}>
+      <main className={`flex-1 w-full mx-auto px-4 sm:px-6 py-6 print:p-0 print:max-w-none ${
+        phase === "dashboard" || phase === "summary" ? "max-w-6xl xl:max-w-7xl" : "max-w-3xl"
+      }`}>
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
             {error} — is the API running at {api.base}?
@@ -211,7 +320,7 @@ export default function App() {
         )}
 
         {phase === "consent" && (
-          <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={() => setPhase("language")} />
+          <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={goBack} />
         )}
 
         {phase === "interview" && question && (
@@ -225,12 +334,13 @@ export default function App() {
             onSubmit={submitAnswer}
             onConfirmYes={confirmYes}
             onConfirmNo={confirmNo}
+            onPrevious={goBack}
           />
         )}
 
         {phase === "preparing_summary" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-10 text-center max-w-md mx-auto my-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-3xl animate-bounce-gentle">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-[0_10px_35px_rgba(37,99,235,0.08)] border border-blue-100 p-10 text-center max-w-md mx-auto my-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-3xl animate-bounce-gentle text-blue-600">
               ✨
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">Preparing Clinical Summary…</h2>
@@ -248,11 +358,19 @@ export default function App() {
             redFlags={redFlags}
             onOpenSummary={() => setPhase("summary")}
             onRestart={restart}
+            onBack={goBack}
           />
         )}
 
         {phase === "summary" && summary && (
-          <SummaryView lang={lang} sessionId={sessionId} summary={summary} redFlags={redFlags} onRestart={restart} />
+          <SummaryView
+            lang={lang}
+            sessionId={sessionId}
+            summary={summary}
+            redFlags={redFlags}
+            onRestart={restart}
+            onBack={goBack}
+          />
         )}
       </main>
 
