@@ -62,13 +62,19 @@ def test_ayush_mode_full_flow():
     q = dialogue_engine.current_question(session)
     assert q["node_id"] == "chief_complaint"
 
-    # Cough branches to past_history in ontology, but with AYUSH mode routes to ayush_intro
+    # Cough branches through HPI questions, then routes to ayush_intro before past_history
     r_cc = _answer(session, "chief_complaint", touch_value="cough")
     assert r_cc["status"] == "accepted"
-    assert r_cc["next_question"]["node_id"] == "ayush_intro"
-    assert r_cc["next_question"]["type"] == "info_screen"
-    assert "cta" in r_cc["next_question"]
-    assert "skip_option" in r_cc["next_question"]
+    assert r_cc["next_question"]["node_id"] == "cough_duration"
+
+    _answer(session, "cough_duration", touch_value="few_days")
+    _answer(session, "cough_type", touch_value="dry")
+    _answer(session, "cough_breathless", touch_value="no")
+    r_c_end = _answer(session, "cough_assoc", touch_value=["none"])
+    assert r_c_end["next_question"]["node_id"] == "ayush_intro"
+    assert r_c_end["next_question"]["type"] == "info_screen"
+    assert "cta" in r_c_end["next_question"]
+    assert "skip_option" in r_c_end["next_question"]
 
     # Start AYUSH intake
     r_intro = _answer(session, "ayush_intro", touch_value="start")
@@ -120,11 +126,105 @@ def test_ayush_mode_skip_option():
     session = session_store.create_session(language="en", ayush_mode=True)
     dialogue_engine.current_question(session)
 
-    r_cc = _answer(session, "chief_complaint", touch_value="cough")
-    assert r_cc["next_question"]["node_id"] == "ayush_intro"
+    _answer(session, "chief_complaint", touch_value="cough")
+    _answer(session, "cough_duration", touch_value="few_days")
+    _answer(session, "cough_type", touch_value="dry")
+    _answer(session, "cough_breathless", touch_value="no")
+    r_c_end = _answer(session, "cough_assoc", touch_value=["none"])
+    assert r_c_end["next_question"]["node_id"] == "ayush_intro"
 
     # Patient chooses to skip AYUSH section
     r_skip = _answer(session, "ayush_intro", touch_value="skip")
     assert session["ayush_done"] is True
     assert r_skip["next_question"]["node_id"] == "past_history"
+
+
+def test_phonetic_fallback_match():
+    from app.core import summary_builder
+    from app.core.llm_mapper import _match_candidate, _phonetic_match
+
+    # Verify unit-level phonetic matching ("thane belt" vs "thin build")
+    score = _phonetic_match("thin build", "thane belt")
+    assert score >= 0.55
+    assert _match_candidate("thin build", "thane belt") == score
+
+    # End-to-end voice dialogue test: near-miss pronunciation resolves to valid option value
+    # and summary pipeline renders canonical resolved label
+    session = session_store.create_session(language="en", ayush_mode=True)
+    dialogue_engine.current_question(session)
+    _answer(session, "chief_complaint", touch_value="cough")
+    _answer(session, "cough_duration", touch_value="few_days")
+    _answer(session, "cough_type", touch_value="dry")
+    _answer(session, "cough_breathless", touch_value="no")
+    _answer(session, "cough_assoc", touch_value=["none"])
+    _answer(session, "ayush_intro", touch_value="start")
+
+    # Spoken text "thane belt" phonetically resolves to vata_leaning
+    r = _answer(session, "ayush_prakriti", text="thane belt")
+    assert r["status"] == "accepted"
+    assert r["stored"]["value"] == "vata_leaning"
+
+    # Confirm the summary pipeline renders only the resolved, correctly-spelled label
+    summary = summary_builder.build_summary(session)
+    assert summary["ayush_profile"] is not None
+    assert "Thin build" in summary["ayush_profile"]["prakriti_cue"]
+
+
+def test_abdominal_pain_general_mode_full_flow():
+    """Verify general mode intake covers all clinical HPI questions (not just 3 questions)."""
+    from app.core import summary_builder
+
+    session = session_store.create_session(language="en", ayush_mode=False)
+    q = dialogue_engine.current_question(session)
+    assert q["node_id"] == "chief_complaint"
+
+    # 1. Chief Complaint: Stomach pain
+    r1 = _answer(session, "chief_complaint", text="stomach pain")
+    assert r1["status"] == "accepted"
+    assert session["answers"]["chief_complaint"] == "abdominal_pain"
+    assert r1["next_question"]["node_id"] == "abd_onset"
+
+    # 2. Onset
+    r2 = _answer(session, "abd_onset", touch_value="today")
+    assert r2["next_question"]["node_id"] == "abd_site"
+
+    # 3. Location / Site (RLQ)
+    r3 = _answer(session, "abd_site", touch_value="lower_right")
+    assert r3["next_question"]["node_id"] == "abd_character"
+
+    # 4. Character
+    r4 = _answer(session, "abd_character", touch_value="sharp")
+    assert r4["next_question"]["node_id"] == "abd_assoc"
+
+    # 5. Associated symptoms
+    r5 = _answer(session, "abd_assoc", touch_value=["vomiting"])
+    assert r5["next_question"]["node_id"] == "abd_severity"
+
+    # 6. Severity (0-10)
+    r6 = _answer(session, "abd_severity", touch_value=8)
+    # General mode routes straight to past_history (no AYUSH questions)
+    assert r6["next_question"]["node_id"] == "past_history"
+
+    # 7. Past history
+    r7 = _answer(session, "past_history", touch_value=["diabetes"])
+    assert r7["next_question"]["node_id"] == "drug_allergy"
+
+    # 8. Drug allergy
+    r8 = _answer(session, "drug_allergy", touch_value="no")
+    assert r8["done"] is True
+    assert session["status"] == "complete"
+
+    # Verify acute abdomen red flag fired
+    flag_ids = {f["id"] for f in session["red_flags"]}
+    assert "acute_abdomen" in flag_ids
+
+    # Verify structured clinical HPI narrative synthesized
+    summary = summary_builder.build_summary(session)
+    assert "Patient presents with abdominal pain" in summary["hpi"]
+    assert "right lower quadrant" in summary["hpi"]
+    assert "sharp/stabbing" in summary["hpi"]
+    assert "vomiting" in summary["hpi"]
+    assert "8/10 on severity scale" in summary["hpi"]
+    assert "diabetes" in summary["hpi"]
+
 

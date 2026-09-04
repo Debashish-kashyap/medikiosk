@@ -145,38 +145,30 @@ def _interpret_yes_no(node: dict, text_norm: str, lang: str) -> dict:
 
 
 def _match_candidate(cand: str, text: str) -> float:
-    """Return match confidence between a candidate alias/label and input text.
-    Handles exact, word boundary, partial (50% heard), word overlap, and fuzzy matches.
-    """
     c = cand.strip().lower()
     t = text.strip().lower()
     if not c or not t:
         return 0.0
 
-    # 1. Exact match
     if c == t:
         return 0.98
 
-    # 2. Exact whole-word boundary match
     escaped = re.escape(c)
     pattern = rf"(?:^|\W){escaped}(?:$|\W)"
     if re.search(pattern, t):
         return 0.92 if len(c) > 2 else 0.82
 
-    # 3. Substring match (candidate in text, e.g. 'chest' in 'I have chest pain')
     if c in t:
         ratio = len(c) / len(t)
         return max(0.82, 0.72 + 0.25 * ratio)
 
-    # 4. Partial word heard (text in candidate, e.g. 'chest' in 'chest pain' or 'diab' in 'diabetes')
     if t in c:
         ratio = len(t) / len(c)
-        if ratio >= 0.50:  # 50% heard
+        if ratio >= 0.50:
             return max(0.80, 0.68 + 0.30 * ratio)
         elif ratio >= 0.30 and len(t) >= 3:
             return 0.65
 
-    # 5. Word-by-word overlap (e.g. 'blood pressure' vs 'high blood pressure')
     c_words = [w for w in re.split(r"\W+", c) if len(w) > 1]
     t_words = [w for w in re.split(r"\W+", t) if len(w) > 1]
     if c_words and t_words:
@@ -186,18 +178,49 @@ def _match_candidate(cand: str, text: str) -> float:
             if overlap >= 0.50:
                 return 0.88
 
-    # 6. Fuzzy string similarity (full phrase typos)
     sim = difflib.SequenceMatcher(None, c, t).ratio()
     if sim >= 0.70:
         return round(0.60 + (sim - 0.70) * 0.80, 2)
 
-    # 7. Fuzzy word-to-word similarity (single word typo e.g. 'fevr' vs 'fever')
     if c_words and t_words:
         max_word_sim = max(difflib.SequenceMatcher(None, cw, tw).ratio() for cw in c_words for tw in t_words)
         if max_word_sim >= 0.75:
             return round(0.60 + (max_word_sim - 0.75) * 0.80, 2)
 
+    # NEW: phonetic fallback — catches pronunciation-driven ASR errors that
+    # look nothing alike in spelling ("thane belt" vs "thin build") but
+    # sound close. Uses Double Metaphone; falls back cleanly if unavailable.
+    phon_score = _phonetic_match(c, t)
+    if phon_score > 0:
+        return phon_score
+
     return 0.0
+
+
+def _phonetic_match(cand: str, text: str) -> float:
+    """Compare candidate and text by phonetic code, word-by-word."""
+    try:
+        from metaphone import doublemetaphone # type: ignore
+    except ImportError:
+        return 0.0  
+
+    c_words = [w for w in re.split(r"\W+", cand) if w]
+    t_words = [w for w in re.split(r"\W+", text) if w]
+    if not c_words or not t_words:
+        return 0.0
+
+    best = 0.0
+    for cw in c_words:
+        c_codes = doublemetaphone(cw)
+        for tw in t_words:
+            t_codes = doublemetaphone(tw)
+            # Any overlap between primary/secondary metaphone codes = phonetic match
+            if any(cc and cc == tc for cc in c_codes for tc in t_codes):
+                # Weight by how much of the word matched, so "thin"↔"thane"
+                # (short, common word) scores lower than a longer distinctive match.
+                weight = min(len(cw), len(tw)) / max(len(cw), len(tw))
+                best = max(best, 0.55 + 0.20 * weight)
+    return round(best, 2) if best >= 0.55 else 0.0
 
 
 def _interpret_aliases(node: dict, text_norm: str, lang: str) -> dict:
@@ -395,17 +418,102 @@ def _template_hpi(f: dict[str, Any], answer_meta: dict[str, Any] | None = None) 
             parts.append("associated with " + ", ".join(assoc_clean))
         sentences.append(", ".join(parts) + ".")
 
+    elif cc == "abdominal_pain":
+        parts = ["Patient presents with abdominal pain"]
+        if f.get("abd_onset"):
+            onset_str = {
+                "under_1h": "started less than 1 hour ago",
+                "today": "started earlier today",
+                "few_days": "present for a few days",
+                "over_week": "present for more than a week",
+            }.get(f["abd_onset"], f"onset {f['abd_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
+        if f.get("abd_site"):
+            site_str = {
+                "upper": "located in the upper abdomen",
+                "lower_right": "located in the right lower quadrant (RLQ)",
+                "around_navel": "periumbilical (around navel)",
+                "all_over": "generalized across the abdomen",
+            }.get(f["abd_site"], f"located in {f['abd_site'].replace('_', ' ')}")
+            parts.append(site_str)
+        if f.get("abd_character"):
+            char_str = {
+                "cramping": "described as cramping spasms",
+                "burning": "described as burning/acidic pain",
+                "sharp": "described as sharp/stabbing",
+                "dull": "described as a dull ache",
+            }.get(f["abd_character"], f"{f['abd_character'].replace('_', ' ')}")
+            parts.append(char_str)
+        assoc = f.get("abd_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("associated with " + ", ".join(assoc_clean))
+        if f.get("abd_severity") is not None:
+            parts.append(f"rated at {f['abd_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
+
     elif cc == "cough":
-        sentences.append("Patient presents with cough and respiratory symptoms.")
+        parts = ["Patient presents with cough"]
+        if f.get("cough_duration"):
+            dur_str = {
+                "few_days": "present for a few days (<1 week)",
+                "one_two_weeks": "present for 1-2 weeks",
+                "chronic": "chronic (>2 weeks)",
+            }.get(f["cough_duration"], f"{f['cough_duration'].replace('_', ' ')}")
+            parts.append(dur_str)
+        if f.get("cough_type"):
+            type_str = {
+                "dry": "characterized as non-productive (dry)",
+                "productive": "productive with sputum/mucus",
+            }.get(f["cough_type"], f"{f['cough_type'].replace('_', ' ')}")
+            parts.append(type_str)
+        if f.get("cough_breathless") == "yes":
+            parts.append("associated with dyspnea/wheezing")
+        assoc = f.get("cough_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("accompanied by " + ", ".join(assoc_clean))
+        sentences.append(", ".join(parts) + ".")
 
     elif cc == "headache":
-        sentences.append("Patient presents with acute headache / cranial discomfort.")
-
-    elif cc == "abdominal_pain":
-        sentences.append("Patient presents with abdominal discomfort and pain.")
+        parts = ["Patient presents with headache"]
+        if f.get("headache_onset"):
+            onset_str = {
+                "sudden_thunderclap": "sudden severe onset (thunderclap)",
+                "today": "started earlier today",
+                "few_days": "present for a few days",
+                "chronic": "recurrent/chronic in nature",
+            }.get(f["headache_onset"], f"onset {f['headache_onset'].replace('_', ' ')}")
+            parts.append(onset_str)
+        if f.get("headache_location"):
+            loc_str = {
+                "one_side": "unilateral throbbing pain",
+                "forehead": "frontal/forehead distribution",
+                "back_neck": "occipital/nuchal distribution",
+                "all_over": "holocranial tension-type band",
+            }.get(f["headache_location"], f"located in {f['headache_location'].replace('_', ' ')}")
+            parts.append(loc_str)
+        assoc = f.get("headache_assoc")
+        if isinstance(assoc, list) and assoc and "none" not in assoc:
+            assoc_clean = [a.replace("_", " ") for a in assoc]
+            parts.append("associated with " + ", ".join(assoc_clean))
+        if f.get("headache_severity") is not None:
+            parts.append(f"rated at {f['headache_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
 
     elif cc == "other":
-        sentences.append("Patient presents with general health complaints for clinical evaluation.")
+        parts = ["Patient presents for clinical evaluation of general symptoms"]
+        if f.get("other_duration"):
+            dur_str = {
+                "today": "onset earlier today",
+                "few_days": "persisting for a few days",
+                "over_week": "persisting for over a week",
+                "chronic": "chronic condition (>1 month)",
+            }.get(f["other_duration"], f"{f['other_duration'].replace('_', ' ')}")
+            parts.append(dur_str)
+        if f.get("other_severity") is not None:
+            parts.append(f"rated at {f['other_severity']}/10 on severity scale")
+        sentences.append(", ".join(parts) + ".")
 
     elif cc:
         sentences.append(f"Patient presents with chief complaint of {str(cc).replace('_', ' ')}.")
