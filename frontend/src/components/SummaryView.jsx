@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
 import AccessLogModal from "./AccessLogModal.jsx";
+import logoMark from "../assets/logo-mark.png";
+import logoName from "../assets/logo-name.png";
 
 // Helper: get file type icon based on mime type or filename
 function getFileIcon(filename, type) {
@@ -18,7 +20,7 @@ function getFileIcon(filename, type) {
 // Module C: Structured, in-place editable physician card.
 // T1 requirement: Polish into a clean, print-friendly physician card (clear sections, edit-in-place HPI).
 // T3 integration: Patient access log & privacy audit.
-export default function SummaryView({ lang, sessionId, summary, redFlags = [], onRestart }) {
+export default function SummaryView({ lang, sessionId, summary, redFlags = [], onRestart, onBack }) {
   const [sum, setSum] = useState(summary || {});
   const [initialHpi, setInitialHpi] = useState(summary?.hpi || "");
   const [hpi, setHpi] = useState(summary?.hpi || "");
@@ -105,25 +107,51 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
     <div className="space-y-6 print:space-y-4 print:text-black">
       {/* Top Clinical Header & Action Toolbar */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 print:border-none print:shadow-none print:p-0">
-        <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-teal-100 text-teal-800">
-              {t(lang, "forPhysician")}
-            </span>
-            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-              ID: {sessionId || "N/A"}
-            </span>
-            <span className="text-xs text-slate-500">
-              {currentDate}
-            </span>
+        <div className="flex items-center gap-3.5">
+          <div className="flex items-center">
+            <img
+              src={logoMark}
+              alt="MediKiosk"
+              className="h-13 w-13 object-contain shrink-0"
+            />
+            <img
+              src={logoName}
+              alt="MediKiosk"
+              className="h-7.5 w-auto object-contain shrink-0 -ml-1.5"
+            />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            {t(lang, "summaryTitle")}
-          </h1>
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-teal-100 text-teal-800">
+                {t(lang, "forPhysician")}
+              </span>
+              <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                ID: {sessionId || "N/A"}
+              </span>
+              <span className="text-xs text-slate-500">
+                {currentDate}
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              {t(lang, "summaryTitle")}
+            </h1>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap print:hidden">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shadow-sm"
+              title="Return to questions"
+            >
+              <span>←</span>
+              <span>{t(lang, "backToInterview")}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handlePrint}

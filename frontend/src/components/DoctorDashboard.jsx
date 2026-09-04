@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { t } from "../i18n";
+import logoMark from "../assets/logo-mark.png";
+import logoName from "../assets/logo-name.png";
 
 const defaultQueue = [
   { id: "PT-1045", name: "Aarav Sharma", age: 34, complaint: "Chest pain with shortness of breath", priority: "critical", eta: "08 mins" },
@@ -8,7 +10,7 @@ const defaultQueue = [
   { id: "PT-4412", name: "Sonia Patel", age: 29, complaint: "Migraine and nausea", priority: "review", eta: "31 mins" },
 ];
 
-export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [], onOpenSummary, onRestart }) {
+export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [], onOpenSummary, onRestart, onBack }) {
   const [role, setRole] = useState("doctor");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -94,14 +96,28 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">{t(lang, "dashboardBadge")}</p>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900">{t(lang, "dashboardTitle")}</h1>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-sm font-semibold text-teal-800">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500" />
-              <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
+          <div className="flex items-start gap-4">
+            <div className="flex items-center hidden sm:flex">
+              <img
+                src={logoMark}
+                alt="MediKiosk"
+                className="h-14 w-14 object-contain shrink-0"
+              />
+              <img
+                src={logoName}
+                alt="MediKiosk"
+                className="h-8.5 w-auto object-contain shrink-0 -ml-1.5"
+              />
             </div>
-            <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">{t(lang, "dashboardBadge")}</p>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-900">{t(lang, "dashboardTitle")}</h1>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1 text-sm font-semibold text-teal-800">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500" />
+                <span>{t(lang, "dashboardCurrentPatient")}: {currentPatientName}</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-600">{t(lang, "dashboardSubtitle")}</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -130,6 +146,17 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
               </div>
             </div>
 
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="rounded-xl border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-800 px-4 py-2.5 text-sm font-bold shadow-sm transition flex items-center gap-1.5"
+                title="Return to patient kiosk"
+              >
+                <span>←</span>
+                <span>{t(lang, "backToKiosk")}</span>
+              </button>
+            )}
             <button type="button" onClick={onOpenSummary} className="rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition">
               {t(lang, "dashboardOpenSummary")}
             </button>

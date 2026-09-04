@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api } from "./api";
 import { t } from "./i18n";
+import logoMark from "./assets/logo-mark.png";
+import logoName from "./assets/logo-name.png";
 import LanguageSelect from "./components/LanguageSelect.jsx";
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import QuestionCard from "./components/QuestionCard.jsx";
@@ -13,8 +15,10 @@ export default function App() {
   const [lang, setLang] = useState("en");
   const [ayushMode, setAyushMode] = useState(false);
   const [phase, setPhase] = useState("language");
+  const [prevPhase, setPrevPhase] = useState("language");
   const [sessionId, setSessionId] = useState(null);
   const [question, setQuestion] = useState(null);
+  const [questionHistory, setQuestionHistory] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
   const [pendingConfirm, setPendingConfirm] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -25,6 +29,7 @@ export default function App() {
   function chooseLanguage(code, mode) {
     setLang(code);
     if (typeof mode === "boolean") setAyushMode(mode);
+    setPrevPhase("language");
     setPhase("consent");
   }
 
@@ -35,7 +40,9 @@ export default function App() {
       const res = await api.createSession(lang, ayushMode);
       setSessionId(res.session_id);
       setQuestion(res.question);
+      setQuestionHistory([]);
       await api.giveConsent(res.session_id, true, abhaId, otp);
+      setPrevPhase("consent");
       setPhase("interview");
     } catch (e) {
       setError(String(e));
@@ -60,6 +67,7 @@ export default function App() {
       setPendingConfirm(null);
       if (res.red_flags_all) setRedFlags(res.red_flags_all);
       if (res.done) {
+        setPrevPhase("interview");
         setPhase("preparing_summary");
         setQuestion(null);
         try {
@@ -70,6 +78,7 @@ export default function App() {
           setError(String(sumErr));
         }
       } else {
+        setQuestionHistory((prev) => [...prev, question]);
         setQuestion(res.next_question);
       }
     } catch (e) {
@@ -79,11 +88,37 @@ export default function App() {
     }
   }
 
+  function goBack() {
+    setError(null);
+    if (phase === "dashboard") {
+      setPhase(prevPhase || "language");
+    } else if (phase === "summary") {
+      if (questionHistory.length > 0) {
+        const lastQ = questionHistory[questionHistory.length - 1];
+        setQuestion(lastQ);
+        setPhase("interview");
+      } else {
+        setPhase("language");
+      }
+    } else if (phase === "interview") {
+      if (questionHistory.length > 0) {
+        const lastQ = questionHistory[questionHistory.length - 1];
+        setQuestionHistory((prev) => prev.slice(0, -1));
+        setQuestion(lastQ);
+      } else {
+        setPhase("consent");
+      }
+    } else if (phase === "consent") {
+      setPhase("language");
+    }
+  }
+
   const confirmYes = () =>
     submitAnswer({ touch_value: pendingConfirm.interpreted_value, confirmed: true });
   const confirmNo = () => setPendingConfirm(null);
 
   async function openDoctorDashboard() {
+    setPrevPhase(phase);
     setBusy(true);
     setError(null);
     try {
@@ -143,8 +178,10 @@ export default function App() {
 
   function restart() {
     setPhase("language");
+    setPrevPhase("language");
     setSessionId(null);
     setQuestion(null);
+    setQuestionHistory([]);
     setRedFlags([]);
     setPendingConfirm(null);
     setSummary(null);
@@ -153,29 +190,56 @@ export default function App() {
 
   return (
     <div className="min-h-full flex flex-col bg-slate-50 print:bg-white">
-      <header className="bg-kiosk-primary text-white px-6 py-4 flex items-center justify-between shadow print:hidden">
+      <header className="bg-white border-b border-slate-200/90 border-t-4 border-t-teal-600 px-6 py-3 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-4">
-          <div>
-            <div className="text-2xl font-bold">{t(lang, "appTitle")}</div>
-            <div className="text-sm opacity-90">{t(lang, "tagline")}</div>
+          {/* Free Logo Mark & Name - Stable Placement on Top-Left */}
+          <div className="flex items-center">
+            <img
+              src={logoMark}
+              alt="MediKiosk Logo"
+              className="h-14 w-14 sm:h-16 sm:w-16 object-contain shrink-0"
+            />
+            <img
+              src={logoName}
+              alt="MediKiosk"
+              className="h-8 sm:h-9.5 w-auto object-contain shrink-0 -ml-1.5"
+            />
           </div>
+
+          <div className="hidden xl:block">
+            <div className="text-xs sm:text-sm text-slate-500 font-medium leading-tight pl-3 border-l border-slate-200">
+              {t(lang, "tagline")}
+            </div>
+          </div>
+
           {phase !== "language" && (
             <div className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
               ayushMode
-                ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40"
-                : "bg-blue-500/20 text-blue-200 border-blue-400/40"
+                ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                : "bg-blue-50 text-blue-800 border-blue-300"
             }`}>
               <span>{ayushMode ? "🌿" : "🩺"}</span>
               <span>{ayushMode ? "AYUSH Intake" : "General Intake"}</span>
             </div>
           )}
         </div>
+
         <div className="flex items-center gap-2">
+          {phase !== "language" && (
+            <button
+              onClick={goBack}
+              className="text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl px-3.5 py-2 border border-slate-200/80 transition flex items-center gap-1.5 shadow-xs"
+              title="Go back to previous screen"
+            >
+              <span className="text-base font-bold leading-none">←</span>
+              <span>{t(lang, "back")}</span>
+            </button>
+          )}
           {phase !== "summary" && phase !== "dashboard" && (
             <button
               onClick={openDoctorDashboard}
               disabled={busy}
-              className="text-xs sm:text-sm bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg px-3.5 py-2 shadow-sm transition flex items-center gap-1.5"
+              className="text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl px-4 py-2.5 shadow-sm transition flex items-center gap-1.5"
               title="Open Physician Summary Dashboard"
             >
               <span>👨‍⚕️</span>
@@ -183,7 +247,7 @@ export default function App() {
             </button>
           )}
           {phase !== "language" && (
-            <button onClick={restart} className="text-xs sm:text-sm bg-white/15 rounded-lg px-3 py-2 hover:bg-white/25 transition">
+            <button onClick={restart} className="text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl px-3 py-2 border border-slate-200 transition">
               {t(lang, "restart")}
             </button>
           )}
@@ -211,7 +275,7 @@ export default function App() {
         )}
 
         {phase === "consent" && (
-          <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={() => setPhase("language")} />
+          <ConsentScreen lang={lang} busy={busy} onAgree={agreeConsent} onBack={goBack} />
         )}
 
         {phase === "interview" && question && (
@@ -225,6 +289,7 @@ export default function App() {
             onSubmit={submitAnswer}
             onConfirmYes={confirmYes}
             onConfirmNo={confirmNo}
+            onPrevious={goBack}
           />
         )}
 
@@ -248,11 +313,19 @@ export default function App() {
             redFlags={redFlags}
             onOpenSummary={() => setPhase("summary")}
             onRestart={restart}
+            onBack={goBack}
           />
         )}
 
         {phase === "summary" && summary && (
-          <SummaryView lang={lang} sessionId={sessionId} summary={summary} redFlags={redFlags} onRestart={restart} />
+          <SummaryView
+            lang={lang}
+            sessionId={sessionId}
+            summary={summary}
+            redFlags={redFlags}
+            onRestart={restart}
+            onBack={goBack}
+          />
         )}
       </main>
 

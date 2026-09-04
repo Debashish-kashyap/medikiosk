@@ -21,6 +21,7 @@ export default function QuestionCard({
   onSubmit,
   onConfirmYes,
   onConfirmNo,
+  onPrevious,
 }) {
   const [multi, setMulti] = useState([]);
   const [freeText, setFreeText] = useState("");
@@ -452,9 +453,23 @@ export default function QuestionCard({
         </>
       )}
 
-      {/* Optional Question Skip Link */}
-      {question.optional && !isInfoScreen && (
-        <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+      {/* Bottom Navigation & Controls */}
+      <div className="mt-8 pt-4 border-t border-slate-200/80 flex items-center justify-between gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => {
+            stopSpeaking();
+            if (onPrevious) onPrevious();
+          }}
+          disabled={busy}
+          className="tap px-4 py-3 text-sm font-bold rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-2"
+          title="Go back to previous question or step"
+        >
+          <span>←</span>
+          <span>{t(lang, "previousQuestion")}</span>
+        </button>
+
+        {question.optional && !isInfoScreen && (
           <button
             type="button"
             className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition underline underline-offset-4"
@@ -466,8 +481,8 @@ export default function QuestionCard({
           >
             {t(lang, "ayushOptionalSkip")}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
