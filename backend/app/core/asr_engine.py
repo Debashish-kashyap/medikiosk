@@ -19,8 +19,6 @@ from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
-# Resolved once per process start — env changes after import won't be seen, which
-# is fine because the server must restart to pick up new env vars anyway.
 _ASR_MODE: str = os.getenv("MEDIKIOSK_ASR", "auto").strip().lower()
 _WHISPER_MODEL: str = os.getenv("MEDIKIOSK_WHISPER_MODEL", "tiny")
 _COMPUTE_TYPE: str = os.getenv("MEDIKIOSK_WHISPER_COMPUTE", "float32")
