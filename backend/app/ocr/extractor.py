@@ -112,7 +112,6 @@ def extract_with_gemini_vision(file_bytes: bytes, filename: str = "", mime_type:
     model = settings.GEMINI_MODEL or "gemini-3.6-flash"
 
     try:
-        
         # pyrefly: ignore [missing-import]
         import google.genai as genai
         client = genai.Client(api_key=api_key)
