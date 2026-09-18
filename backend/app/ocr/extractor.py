@@ -111,8 +111,9 @@ def extract_with_gemini_vision(file_bytes: bytes, filename: str = "", mime_type:
     base64_data = base64.b64encode(file_bytes).decode("utf-8")
     model = settings.GEMINI_MODEL or "gemini-3.6-flash"
 
-    # Try google.genai SDK (new, recommended)
     try:
+        
+        # pyrefly: ignore [missing-import]
         import google.genai as genai
         client = genai.Client(api_key=api_key)
 
@@ -123,7 +124,7 @@ def extract_with_gemini_vision(file_bytes: bytes, filename: str = "", mime_type:
                 genai.types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
             ],
             config=genai.types.GenerateContentConfig(
-                response_mime="application/json",
+                response_mime_type="application/json",
             ),
         )
         raw_output = response.text
