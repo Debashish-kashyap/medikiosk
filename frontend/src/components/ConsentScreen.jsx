@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { SPEECH_LANG, t } from "../i18n";
 
 export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
-  const [abhaId, setAbhaId] = useState("");
+  const [identityType, setIdentityType] = useState("abha");
+  const [identityValue, setIdentityValue] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [localError, setLocalError] = useState("");
 
@@ -11,7 +14,12 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
       return;
     }
 
-    const text = `${t(lang, "consentTitle")}. ${t(lang, "consentBody")}. ${t(lang, "abhaIdLabel")}. ${t(lang, "otpLabel")}.`;
+    const identityLabel = identityType === "abha"
+      ? t(lang, "identityAbha")
+      : identityType === "aadhaar"
+        ? t(lang, "aadhaarLabel")
+        : `${t(lang, "fullNameLabel")} ${t(lang, "mobileLabel")}`;
+    const text = `${t(lang, "consentTitle")}. ${t(lang, "consentBody")}. ${t(lang, "identitySpeechPrefix")} ${identityLabel}. ${t(lang, "identitySpeechOtp")}`;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = SPEECH_LANG[lang] || "en-US";
@@ -32,14 +40,28 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
       window.clearTimeout(timer);
       window.speechSynthesis.cancel();
     };
-  }, [lang]);
+  }, [lang, identityType]);
 
   const handleSubmit = () => {
-    const cleanedAbhaId = abhaId.trim();
+    const cleanedIdentity = identityValue.trim();
+    const cleanedName = fullName.trim();
+    const cleanedMobile = mobileNumber.replace(/\D/g, "");
     const cleanedOtp = otp.trim();
 
-    if (!cleanedAbhaId) {
-      setLocalError(t(lang, "abhaRequired"));
+    if (identityType !== "new_registration" && !cleanedIdentity) {
+      setLocalError(identityType === "aadhaar" ? t(lang, "aadhaarRequired") : t(lang, "abhaRequired"));
+      return;
+    }
+    if (identityType === "aadhaar" && cleanedIdentity.replace(/\D/g, "").length !== 12) {
+      setLocalError(t(lang, "aadhaarInvalid"));
+      return;
+    }
+    if (identityType === "new_registration" && !cleanedName) {
+      setLocalError(t(lang, "fullNameRequired"));
+      return;
+    }
+    if (identityType === "new_registration" && cleanedMobile.length < 10) {
+      setLocalError(t(lang, "mobileRequired"));
       return;
     }
     if (!cleanedOtp) {
@@ -48,7 +70,13 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
     }
 
     setLocalError("");
-    onAgree(cleanedAbhaId, cleanedOtp);
+    onAgree({
+      identity_type: identityType,
+      identity_value: identityType === "aadhaar" ? cleanedIdentity.replace(/\D/g, "") : cleanedIdentity || undefined,
+      full_name: identityType === "new_registration" ? cleanedName : undefined,
+      mobile_number: identityType === "new_registration" ? cleanedMobile.slice(-10) : undefined,
+      otp: cleanedOtp,
+    });
   };
 
   return (
@@ -60,18 +88,51 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
       <p className="text-slate-600 mb-6 leading-relaxed text-base sm:text-lg">{t(lang, "consentBody")}</p>
 
       <div className="space-y-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" role="tablist" aria-label={t(lang, "identityMethodLabel")}>
+          {[
+            ["abha", t(lang, "identityAbha")],
+            ["aadhaar", t(lang, "identityAadhaar")],
+            ["new_registration", t(lang, "identityNewPatient")],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={identityType === value}
+              onClick={() => { setIdentityType(value); setLocalError(""); }}
+              className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${identityType === value ? "border-blue-600 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+              disabled={busy}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {identityType === "new_registration" ? (
+          <>
+            <div>
+              <label className="mb-1.5 block text-sm font-bold text-slate-700">{t(lang, "fullNameLabel")}</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t(lang, "fullNamePlaceholder")} className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/50 px-4 py-3.5 text-lg focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition focus:outline-none font-medium" autoComplete="name" disabled={busy} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-bold text-slate-700">{t(lang, "mobileLabel")}</label>
+              <input type="tel" inputMode="numeric" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder={t(lang, "mobilePlaceholder")} className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/50 px-4 py-3.5 text-lg focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition focus:outline-none font-medium" autoComplete="tel" disabled={busy} />
+            </div>
+          </>
+        ) : (
         <div>
-          <label className="mb-1.5 block text-sm font-bold text-slate-700">{t(lang, "abhaIdLabel")}</label>
+          <label className="mb-1.5 block text-sm font-bold text-slate-700">{identityType === "aadhaar" ? t(lang, "aadhaarLabel") : t(lang, "abhaIdLabel")}</label>
           <input
             type="text"
-            value={abhaId}
-            onChange={(e) => setAbhaId(e.target.value)}
-            placeholder={t(lang, "abhaIdPlaceholder")}
+            value={identityValue}
+            onChange={(e) => setIdentityValue(e.target.value)}
+            placeholder={identityType === "aadhaar" ? t(lang, "aadhaarPlaceholder") : t(lang, "abhaIdPlaceholder")}
             className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/50 px-4 py-3.5 text-lg focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition focus:outline-none font-medium"
             autoComplete="off"
             disabled={busy}
           />
         </div>
+        )}
 
         <div>
           <label className="mb-1.5 block text-sm font-bold text-slate-700">{t(lang, "otpLabel")}</label>

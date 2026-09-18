@@ -40,6 +40,11 @@ npm run dev        # http://localhost:5173
 It runs **with no API keys** — speech→field mapping uses an offline alias matcher, and
 ASR uses the browser’s built-in Web Speech API. Plug real models in later (see lanes).
 
+Step 1 identity verification is explicit about its deployment boundary: ABHA calls the
+configured sandbox adapter when `MEDIKIOSK_ABHA_MODE=sandbox`; otherwise ABHA, Aadhaar,
+and new-patient registration use local demo verification. Raw Aadhaar, mobile numbers,
+and OTPs are not stored in the temporary session.
+
 **Lane 4 (optional local Whisper):** `pip install faster-whisper`, install ffmpeg, set
 `MEDIKIOSK_ASR=whisper`. The kiosk still uses Web Speech unless you also set
 `VITE_USE_SERVER_ASR=1` (then mic audio is POSTed to `/api/asr`).
@@ -54,7 +59,7 @@ code changes, so use the local flow above while building.
 ---
 
 ## Try the demo (90 seconds)
-1. Choose language → accept consent.
+1. Choose language → verify with ABHA, Aadhaar, or register as a new patient → accept consent.
 2. “What brings you in today?” → **speak** “seene mein dard” / “chest pain”, or tap.
 3. Answer the SOCRATES follow-ups. Say something garbled once → the kiosk asks you to
    **repeat or tap** (confidence gate).

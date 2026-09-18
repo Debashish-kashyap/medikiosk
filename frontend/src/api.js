@@ -30,10 +30,10 @@ export const api = {
   createSession: (language, ayush_mode = false) =>
     req("/api/session", { method: "POST", body: JSON.stringify({ language, ayush_mode }) }),
 
-  giveConsent: (sid, given = true, abhaId = "", otp = "") =>
+  giveConsent: (sid, identity = {}) =>
     req(`/api/session/${sid}/consent`, {
       method: "POST",
-      body: JSON.stringify({ given, abha_id: abhaId, otp }),
+      body: JSON.stringify({ given: true, ...identity }),
     }),
 
   next: (sid) => req(`/api/session/${sid}/next`),

@@ -32,7 +32,7 @@ def create_session(language: str = "en", ayush_mode: bool = False) -> dict:
         "answers": {},                 # field -> value (str | list | int)
         "answer_meta": {},             # field -> {source, confidence, transcript}
         "red_flags": [],               # list of fired flag dicts
-        "consent": {"given": False, "ts": None},
+        "consent": {"given": False, "ts": None, "identity_type": None},
         "documents": [],               # OCR-extracted docs (Module B)
         "status": "in_progress",       # in_progress | complete
         "created_at": _now(),

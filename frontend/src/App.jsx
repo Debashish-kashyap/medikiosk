@@ -73,7 +73,7 @@ export default function App() {
     setPhase("consent");
   }
 
-  async function agreeConsent(abhaId, otp) {
+  async function agreeConsent(identity) {
     setBusy(true);
     setError(null);
     try {
@@ -81,7 +81,7 @@ export default function App() {
       setSessionId(res.session_id);
       setQuestion(res.question);
       setQuestionHistory([]);
-      await api.giveConsent(res.session_id, true, abhaId, otp);
+      await api.giveConsent(res.session_id, identity);
       setPrevPhase("consent");
       setPhase("interview");
     } catch (e) {

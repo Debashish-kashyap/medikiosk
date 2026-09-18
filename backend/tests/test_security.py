@@ -88,3 +88,44 @@ def test_consent_abha_otp_is_not_returned_or_audited():
     assert response.json()["consent"]["abha_linked"] is True
     assert "otp" not in response.text.lower()
     assert "123456" not in str(audit_log.get_log(patient_id))
+
+
+def test_consent_supports_aadhaar_without_persisting_raw_number():
+    from app.main import app
+
+    client = TestClient(app)
+    patient_id = client.post("/api/session", json={}).json()["session_id"]
+    aadhaar = "1234-5678-9012"
+    response = client.post(
+        f"/api/session/{patient_id}/consent",
+        json={"identity_type": "aadhaar", "identity_value": aadhaar, "otp": "123456"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["consent"]["identity_type"] == "aadhaar"
+    session = client.get(f"/api/session/{patient_id}").json()
+    assert session["consent"]["identity"]["value_last4"] == "9012"
+    assert aadhaar not in str(session)
+
+
+def test_consent_supports_new_patient_registration():
+    from app.main import app
+
+    client = TestClient(app)
+    patient_id = client.post("/api/session", json={}).json()["session_id"]
+    response = client.post(
+        f"/api/session/{patient_id}/consent",
+        json={
+            "identity_type": "new_registration",
+            "full_name": "Anita Das",
+            "mobile_number": "9876543210",
+            "otp": "123456",
+        },
+    )
+
+    assert response.status_code == 200
+    identity = response.json()["consent"]["identity"]
+    assert identity["identity_type"] == "new_registration"
+    assert identity["full_name"] == "Anita Das"
+    assert identity["value_last4"] == "3210"
+    assert "9876543210" not in response.text

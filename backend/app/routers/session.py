@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..core import abha_service, dialogue_engine, fhir_builder, summary_builder
+from ..core import abha_service, dialogue_engine, fhir_builder, identity_service, summary_builder
 from ..models.schemas import ConsentRequest, CreateSessionRequest
 from ..store import audit_log, session_store
 
@@ -36,25 +36,31 @@ def give_consent(session_id: str, body: ConsentRequest) -> dict:
     session = _require(session_id)
     from datetime import datetime, timezone
 
-    if body.given and not body.abha_id:
-        raise HTTPException(status_code=422, detail="ABHA ID is required before collecting health information.")
-
     session["consent"] = {
         "given": body.given,
         "ts": datetime.now(timezone.utc).isoformat(),
         "abha_linked": False,
+        "identity_type": body.identity_type if body.given else None,
     }
-    if body.given and body.abha_id:
+    if body.given:
         try:
-            abha_service.link_abha(session_id, body.abha_id, body.otp)
-            session["consent"]["abha_linked"] = True
-            session["consent"]["abha_id"] = body.abha_id.strip()
+            if body.identity_type == "abha":
+                abha_service.link_abha(session_id, body.identity_value, body.otp)
+                session["consent"]["abha_linked"] = True
+                session["consent"]["abha_id"] = body.identity_value
+            else:
+                session["consent"]["identity"] = identity_service.verify_local_identity(
+                    identity_type=body.identity_type,
+                    identity_value=body.identity_value,
+                    full_name=body.full_name,
+                    mobile_number=body.mobile_number,
+                )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except RuntimeError:
             raise HTTPException(status_code=502, detail="ABHA verification is temporarily unavailable.")
     session_store.save_session(session)
-    audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="ABHA_LINK" if body.abha_id else "CONSENT", resource="session", success=True, purpose="consent")
+    audit_log.record(session_id, actor=f"patient:{session_id}", role="patient", action="IDENTITY_VERIFY" if body.given else "CONSENT", resource="session", success=True, purpose="consent")
     return {"session_id": session_id, "consent": session["consent"]}
 
 

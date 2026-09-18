@@ -6,7 +6,7 @@ flexible during the hackathon; requests are validated by these models.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -18,17 +18,38 @@ class CreateSessionRequest(BaseModel):
 
 class ConsentRequest(BaseModel):
     given: bool = True
-    abha_id: str | None = Field(default=None, min_length=1, description="ABHA number/address required for patient authentication before intake")
+    identity_type: Literal["abha", "aadhaar", "new_registration"] = "abha"
+    identity_value: str | None = Field(default=None, min_length=1, description="ABHA ID or Aadhaar number")
+    # Kept for clients using the original consent contract.
+    abha_id: str | None = Field(default=None, min_length=1, description="Legacy alias for identity_value when identity_type is abha")
+    full_name: str | None = Field(default=None, min_length=2)
+    mobile_number: str | None = Field(default=None, min_length=10, max_length=15)
     otp: str | None = Field(default=None, min_length=4, repr=False, description="One-time verification code; never persisted")
 
     @model_validator(mode="after")
-    def require_abha_identity_before_intake(self):
-        if self.given and not self.abha_id:
-            raise ValueError("ABHA ID is required before collecting health information.")
-        if self.given and self.abha_id and not self.abha_id.strip():
-            raise ValueError("ABHA ID is required before collecting health information.")
-        if self.given and self.abha_id and not self.otp:
-            raise ValueError("OTP is required when requesting ABHA linkage.")
+    def validate_identity_before_intake(self):
+        if not self.given:
+            return self
+
+        if self.identity_type == "abha":
+            self.identity_value = (self.identity_value or self.abha_id or "").strip()
+            if not self.identity_value:
+                raise ValueError("ABHA ID is required before collecting health information.")
+        elif self.identity_type == "aadhaar":
+            normalized = "".join(ch for ch in (self.identity_value or "") if ch.isdigit())
+            if len(normalized) != 12:
+                raise ValueError("Aadhaar number must contain 12 digits.")
+            self.identity_value = normalized
+        else:
+            if not self.full_name or len(self.full_name.strip()) < 2:
+                raise ValueError("Full name is required for new patient registration.")
+            mobile = "".join(ch for ch in (self.mobile_number or "") if ch.isdigit())
+            if len(mobile) < 10:
+                raise ValueError("A valid mobile number is required for registration.")
+            self.mobile_number = mobile[-10:]
+
+        if not self.otp:
+            raise ValueError("OTP is required to verify patient identity.")
         return self
 
 
