@@ -1,4 +1,4 @@
-import React, { Component, useState } from "react";
+import React, { Component, useEffect, useState } from "react";
 import { api } from "./api";
 import { t } from "./i18n";
 import logoMark from "./assets/logo-mark.png";
@@ -9,6 +9,8 @@ import QuestionCard from "./components/QuestionCard.jsx";
 import RedFlagBanner from "./components/RedFlagBanner.jsx";
 import SummaryView from "./components/SummaryView.jsx";
 import DoctorDashboard from "./components/DoctorDashboard.jsx";
+import { flushOfflineMutations, isOfflineError, queueOfflineMutation } from "./api";
+import { deleteDraft, pendingMutationCount, saveDraft } from "./offlineStore";
 
 // Error Boundary to prevent any uncaught runtime crash from producing a blank white screen
 class ErrorBoundary extends Component {
@@ -65,6 +67,36 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [autoVoice, setAutoVoice] = useState(true);
+  const [physicianToken, setPhysicianToken] = useState(null);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [pendingSync, setPendingSync] = useState(0);
+
+  useEffect(() => {
+    const refreshOfflineState = async () => {
+      setIsOffline(typeof navigator !== "undefined" && !navigator.onLine);
+      setPendingSync(await pendingMutationCount());
+    };
+    const handleOnline = async () => {
+      setIsOffline(false);
+      await flushOfflineMutations();
+      setPendingSync(await pendingMutationCount());
+      if (sessionId) {
+        try {
+          const next = await api.next(sessionId);
+          if (!next.done) setQuestion(next.question);
+        } catch {
+          setIsOffline(true);
+        }
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", refreshOfflineState);
+    refreshOfflineState();
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", refreshOfflineState);
+    };
+  }, [sessionId]);
 
   function chooseLanguage(code, mode) {
     setLang(code);
@@ -76,8 +108,10 @@ export default function App() {
   async function agreeConsent(identity) {
     setBusy(true);
     setError(null);
+    let createdSessionId = null;
     try {
       const res = await api.createSession(lang, ayushMode);
+      createdSessionId = res.session_id;
       setSessionId(res.session_id);
       setQuestion(res.question);
       setQuestionHistory([]);
@@ -85,7 +119,20 @@ export default function App() {
       setPrevPhase("consent");
       setPhase("interview");
     } catch (e) {
+      if (isOfflineError(e)) {
+        if (createdSessionId) {
+          await queueOfflineMutation(`/api/session/${createdSessionId}/consent`, {
+            method: "POST",
+            body: JSON.stringify({ given: true, ...identity }),
+          });
+          setPendingSync((count) => count + 1);
+        }
+        await saveDraft("active-intake", { lang, ayushMode, identity, phase: "consent" });
+        setIsOffline(true);
+        setError("No network connection. Your identity details are saved on this device; reconnect to continue verification.");
+      } else {
       setError(String(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -128,7 +175,18 @@ export default function App() {
         setQuestion(res.next_question);
       }
     } catch (e) {
-      setError(String(e));
+      if (isOfflineError(e)) {
+        await queueOfflineMutation(`/api/session/${sessionId}/answer`, {
+          method: "POST",
+          body: JSON.stringify({ node_id: question.node_id, ...partial }),
+        });
+        await saveDraft("active-intake", { lang, ayushMode, sessionId, question, questionHistory, redFlags, phase: "interview" });
+        setPendingSync((count) => count + 1);
+        setIsOffline(true);
+        setError("Offline mode: this answer is saved locally and will sync automatically when the connection returns.");
+      } else {
+        setError(String(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -223,9 +281,6 @@ export default function App() {
   }
 
   function restart() {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
     setPhase("language");
     setPrevPhase("language");
     setSessionId(null);
@@ -235,6 +290,7 @@ export default function App() {
     setPendingConfirm(null);
     setSummary(null);
     setError(null);
+    deleteDraft("active-intake").catch(() => undefined);
   }
 
   return (
@@ -351,6 +407,12 @@ export default function App() {
         phase === "dashboard" || phase === "summary" ? "max-w-6xl xl:max-w-7xl" : "max-w-3xl"
       }`}>
         <ErrorBoundary onReset={restart}>
+          {(isOffline || pendingSync > 0) && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 print:hidden" role="status">
+              <div className="font-bold">{isOffline ? "Offline mode" : "Pending sync"}</div>
+              <div>{pendingSync > 0 ? `${pendingSync} item${pendingSync === 1 ? "" : "s"} waiting to sync.` : "Changes will be saved locally until the connection returns."}</div>
+            </div>
+          )}
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm print:hidden">
               {error} — is the API running at {api.base}?
@@ -406,6 +468,8 @@ export default function App() {
               onOpenSummary={() => setPhase("summary")}
               onRestart={restart}
               onBack={goBack}
+              authToken={physicianToken}
+              onAuthenticated={setPhysicianToken}
             />
           )}
 
@@ -417,6 +481,7 @@ export default function App() {
               redFlags={redFlags}
               onRestart={restart}
               onBack={goBack}
+              physicianToken={physicianToken}
             />
           )}
         </ErrorBoundary>

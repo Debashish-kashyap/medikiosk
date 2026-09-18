@@ -129,3 +129,57 @@ def test_consent_supports_new_patient_registration():
     assert identity["full_name"] == "Anita Das"
     assert identity["value_last4"] == "3210"
     assert "9876543210" not in response.text
+
+
+def test_step_four_queue_and_route_status():
+    from app.main import app
+
+    client = TestClient(app)
+    patient_id = client.post("/api/session", json={}).json()["session_id"]
+    consented = client.post(
+        f"/api/session/{patient_id}/consent",
+        json={"identity_type": "new_registration", "full_name": "Queue Patient", "mobile_number": "9876543210", "otp": "123456"},
+    )
+    assert consented.status_code == 200
+
+    queue = client.get("/api/queue", headers={"X-User-Id": "dr-1", "X-Role": "physician"})
+    assert queue.status_code == 200
+    assert any(patient["id"] == patient_id for patient in queue.json()["patients"])
+    assert client.get("/api/queue").status_code == 401
+
+    routed = client.post(f"/api/session/{patient_id}/route", json={"targets": ["his", "abdm"]})
+    assert routed.status_code == 200
+    assert routed.json()["routing"]["his"]["status"] == "not_configured"
+    assert routed.json()["routing"]["abdm"]["status"] == "permission_required"
+
+
+def test_physician_review_signoff_and_priority_are_persisted():
+    from app.main import app
+
+    client = TestClient(app)
+    patient_id = client.post("/api/session", json={}).json()["session_id"]
+    client.post(
+        f"/api/session/{patient_id}/consent",
+        json={"identity_type": "new_registration", "full_name": "Review Patient", "mobile_number": "9876543210", "otp": "123456"},
+    )
+
+    invalid = client.post("/api/auth/physician", json={"user_id": "dr.mehta", "password": "wrong"})
+    assert invalid.status_code == 401
+    login = client.post("/api/auth/physician", json={"user_id": "dr.mehta", "password": "medikiosk-demo"})
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    edited = client.patch(f"/api/records/{patient_id}/physician-review", json={"hpi": "Physician verified narrative."}, headers=headers)
+    assert edited.status_code == 200
+    signed = client.post(f"/api/records/{patient_id}/sign-off", headers=headers)
+    assert signed.status_code == 200
+    assert signed.json()["status"] == "confirmed"
+    assert signed.json()["physician_review"]["confirmed"] is True
+
+    priority = client.patch(f"/api/queue/{patient_id}", json={"priority": "critical"}, headers=headers)
+    assert priority.status_code == 200
+    patients = client.get("/api/queue", headers=headers).json()["patients"]
+    saved = next(patient for patient in patients if patient["id"] == patient_id)
+    assert saved["priority"] == "critical"
+    assert saved["review"]["hpi"] == "Physician verified narrative."

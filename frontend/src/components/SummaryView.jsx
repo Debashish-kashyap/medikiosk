@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, isOfflineError, queueOfflineUpload } from "../api";
 import { t } from "../i18n";
 import AccessLogModal from "./AccessLogModal.jsx";
 import logoMark from "../assets/logo-mark.png";
@@ -20,7 +20,7 @@ function getFileIcon(filename, type) {
 // Module C: Structured, in-place editable physician card.
 // T1 requirement: Polish into a clean, print-friendly physician card (clear sections, edit-in-place HPI).
 // T3 integration: Patient access log & privacy audit.
-export default function SummaryView({ lang, sessionId, summary, redFlags = [], onRestart, onBack }) {
+export default function SummaryView({ lang, sessionId, summary, redFlags = [], onRestart, onBack, physicianToken }) {
   const [sum, setSum] = useState(summary || {});
   const [initialHpi, setInitialHpi] = useState(summary?.hpi || "");
   const [hpi, setHpi] = useState(summary?.hpi || "");
@@ -32,6 +32,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
   const [copiedFhir, setCopiedFhir] = useState(false);
   const [showAccessLog, setShowAccessLog] = useState(false);
   const [activeTab, setActiveTab] = useState("clinical"); // "clinical" | "documents" | "fhir"
+  const [reviewStatus, setReviewStatus] = useState(summary?.physician_review || {});
 
   // Keep state in sync when summary prop updates
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
       setSum(summary);
       setHpi(summary.hpi || "");
       setInitialHpi(summary.hpi || "");
+      setReviewStatus(summary.physician_review || {});
     }
   }, [summary]);
 
@@ -63,7 +65,12 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
       const updated = await api.summary(sessionId);
       setSum(updated);
     } catch (err) {
-      alert(`Document upload failed: ${err.message}`);
+      if (isOfflineError(err)) {
+        await queueOfflineUpload(sessionId, file);
+        alert("Offline mode: document saved locally and will sync when the connection returns.");
+      } else {
+        alert(`Document upload failed: ${err.message}`);
+      }
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -81,6 +88,21 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
     } finally {
       setBusy(false);
     }
+  }
+
+  async function saveHpi() {
+    if (!physicianToken || !hpi.trim()) return;
+    const result = await api.savePhysicianReview(sessionId, hpi.trim(), physicianToken);
+    setReviewStatus(result.physician_review || {});
+    setInitialHpi(hpi.trim());
+    setIsHpiEdited(false);
+  }
+
+  async function signOff() {
+    if (!physicianToken) return;
+    if (isHpiEdited) await saveHpi();
+    const result = await api.signOffRecord(sessionId, physicianToken);
+    setReviewStatus(result.physician_review || {});
   }
 
   function copyFhirJson() {
@@ -280,8 +302,20 @@ export default function SummaryView({ lang, sessionId, summary, redFlags = [], o
               className="w-full border border-slate-200 rounded-xl p-3.5 text-slate-800 text-sm sm:text-base leading-relaxed min-h-[130px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-slate-50/50 hover:bg-white focus:bg-white transition"
               value={hpi}
               onChange={handleHpiChange}
+              onBlur={() => { if (isHpiEdited) saveHpi().catch(() => undefined); }}
               placeholder="Structured clinical narrative of the present illness..."
             />
+
+            {physicianToken && (
+              <div className="mt-3 flex items-center justify-between gap-3 print:hidden">
+                <span className="text-xs text-slate-500">
+                  {reviewStatus.confirmed ? `Confirmed by ${reviewStatus.confirmed_by}` : "Draft for physician confirmation"}
+                </span>
+                <button type="button" onClick={() => signOff().catch(() => undefined)} className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                  {reviewStatus.confirmed ? "Signed off" : "Confirm & sign off"}
+                </button>
+              </div>
+            )}
 
             <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
               <span>Verified narrative for clinical documentation · ABDM FHIR compliant</span>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { SPEECH_LANG, t } from "../i18n";
+import { t } from "../i18n";
+import { api } from "../api";
 import VoiceButton from "./VoiceButton.jsx";
 
 const ICONS = {
@@ -31,7 +32,8 @@ export default function QuestionCard({
   const speechTimerRef = useRef(null);
   const safetyTimerRef = useRef(null);
   const listenTimerRef = useRef(null);
-  const currentUtteranceRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
   // Reset multi-select & free-text state whenever the question changes.
   useEffect(() => {
@@ -56,16 +58,18 @@ export default function QuestionCard({
     clearTimeout(speechTimerRef.current);
     clearTimeout(safetyTimerRef.current);
     clearTimeout(listenTimerRef.current);
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch (_) { }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
     }
     setIsSpeaking(false);
-    currentUtteranceRef.current = null;
   }
 
-  function readTextAloud(text) {
+  async function readTextAloud(text) {
     stopSpeaking();
 
     if (!text) {
@@ -77,24 +81,9 @@ export default function QuestionCard({
       return;
     }
 
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      if (autoVoice && !busy && question.allow_voice) {
-        listenTimerRef.current = setTimeout(() => {
-          setListenSignal(Date.now());
-        }, 300);
-      }
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = SPEECH_LANG[lang] || "en-US";
-    utterance.rate = 0.95;
-    currentUtteranceRef.current = utterance;
-
     const onTTSFinished = () => {
       clearTimeout(safetyTimerRef.current);
       setIsSpeaking(false);
-      currentUtteranceRef.current = null;
 
       // Turn-based transition: quiet pause of 250ms before opening mic to avoid echoing TTS
       if (autoVoice && !busy && question.allow_voice) {
@@ -104,29 +93,24 @@ export default function QuestionCard({
       }
     };
 
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-    };
-
-    utterance.onend = () => {
-      onTTSFinished();
-    };
-
-    utterance.onerror = (err) => {
-      console.warn("[QuestionCard TTS warning]", err);
-      onTTSFinished();
-    };
-
-    // Safety fallback timer for browsers with buggy onend events
-    const safetyMs = Math.max(3500, (text.length / 10) * 1000 + 2500);
-    safetyTimerRef.current = setTimeout(onTTSFinished, safetyMs);
-
-    setIsSpeaking(true);
+    // Prefer server-side Bhashini so language voices work consistently in kiosk browsers.
     try {
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn("[QuestionCard TTS speak error]", e);
+      const blob = await api.synthesizeSpeech(text, lang);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audioUrlRef.current = url;
+      audio.onended = onTTSFinished;
+      audio.onerror = () => {
+        stopSpeaking();
+        onTTSFinished();
+      };
+      setIsSpeaking(true);
+      await audio.play();
+      return;
+    } catch {
       onTTSFinished();
+      return;
     }
   }
 

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { SPEECH_LANG, t } from "../i18n";
+import { useEffect, useRef, useState } from "react";
+import { api } from "../api";
+import { t } from "../i18n";
 
 export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
   const [identityType, setIdentityType] = useState("abha");
@@ -9,36 +10,45 @@ export default function ConsentScreen({ lang, busy, onAgree, onBack }) {
   const [otp, setOtp] = useState("");
   const [localError, setLocalError] = useState("");
 
-  const readConsentAloud = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
+  const [speaking, setSpeaking] = useState(false);
+  const audioRef = useRef(null);
 
+  const readConsentAloud = async () => {
     const identityLabel = identityType === "abha"
       ? t(lang, "identityAbha")
       : identityType === "aadhaar"
         ? t(lang, "aadhaarLabel")
         : `${t(lang, "fullNameLabel")} ${t(lang, "mobileLabel")}`;
     const text = `${t(lang, "consentTitle")}. ${t(lang, "consentBody")}. ${t(lang, "identitySpeechPrefix")} ${identityLabel}. ${t(lang, "identitySpeechOtp")}`;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = SPEECH_LANG[lang] || "en-US";
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
+    try {
+      setSpeaking(true);
+      const blob = await api.synthesizeSpeech(text, lang);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setSpeaking(false);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setSpeaking(false);
+      };
+      await audio.play();
+    } catch {
+      setSpeaking(false);
+    }
   };
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
-
     const timer = window.setTimeout(() => {
       readConsentAloud();
     }, 600);
 
     return () => {
       window.clearTimeout(timer);
-      window.speechSynthesis.cancel();
+      const audio = audioRef.current;
+      if (audio) audio.pause();
     };
   }, [lang, identityType]);
 

@@ -215,3 +215,18 @@ def push_to_abdm_sandbox(bundle: dict) -> bool:
         return True
     except httpx.HTTPError as exc:
         raise RuntimeError("ABDM sandbox FHIR export failed.") from exc
+
+
+def push_to_his(bundle: dict) -> bool:
+    """Push a FHIR bundle to the configured hospital information system."""
+    if not settings.HIS_FHIR_URL:
+        return False
+    headers = {"Content-Type": "application/fhir+json"}
+    if settings.HIS_CLIENT_ID and settings.HIS_CLIENT_SECRET:
+        headers.update({"X-Client-Id": settings.HIS_CLIENT_ID, "X-Client-Secret": settings.HIS_CLIENT_SECRET})
+    try:
+        response = httpx.post(settings.HIS_FHIR_URL, json=bundle, headers=headers, timeout=15.0)
+        response.raise_for_status()
+        return True
+    except httpx.HTTPError as exc:
+        raise RuntimeError("HIS FHIR export failed.") from exc

@@ -5,9 +5,10 @@ import asyncio
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, Response, UploadFile
 
 from ..core.asr_engine import active_engine, engine_status, transcribe_audio
+from ..core import bhashini_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["asr"])
@@ -18,7 +19,25 @@ _TRANSCRIBE_TIMEOUT = 90  # seconds before we give up and return empty
 @router.get("/asr/status")
 async def asr_status() -> dict:
     """Return current ASR engine info (used by VoiceButton on mount)."""
-    return engine_status()
+    result = engine_status()
+    result["bhashini"] = bhashini_service.status()
+    return result
+
+
+@router.post("/tts")
+async def synthesize_speech(text: str = Form(...), language: str = Form(default="en")) -> Response:
+    """Generate Bhashini audio when configured; browser TTS remains the fallback."""
+    if not bhashini_service.configured() or not bhashini_service.settings.BHASHINI_TTS_SERVICE_ID:
+        return Response(status_code=404)
+    try:
+        audio = await asyncio.to_thread(bhashini_service.synthesize, text, language)
+    except RuntimeError as error:
+        return Response(content=str(error), status_code=502, media_type="text/plain")
+    except Exception:
+        return Response(content="Bhashini TTS request failed.", status_code=502, media_type="text/plain")
+    if not audio:
+        return Response(status_code=502)
+    return Response(content=audio, media_type="audio/wav")
 
 
 @router.post("/asr")

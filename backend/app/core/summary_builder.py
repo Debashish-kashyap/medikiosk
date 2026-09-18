@@ -66,9 +66,12 @@ def build_summary(session: dict) -> dict:
             "satva": label("ayush_satva", answers.get("ayush_satva")),
         }
 
+    physician_review = session.get("physician_review") or {}
     summary = {
+        "patient_name": ((session.get("consent") or {}).get("identity") or {}).get("full_name"),
         "chief_complaint": chief or "Not captured",
-        "hpi": llm_mapper.phrase_hpi(answers, lang, answer_meta=answer_meta),
+        "hpi": physician_review.get("hpi") or llm_mapper.phrase_hpi(answers, lang, answer_meta=answer_meta),
+        "physician_review": physician_review,
         "past_medical": past_display,
         "drug_allergy": drug_display,
         "ayush_profile": ayush_profile,

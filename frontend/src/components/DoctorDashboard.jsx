@@ -1,28 +1,42 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 import { t } from "../i18n";
 
-const defaultQueue = [
-  { id: "PT-1045", name: "Aarav Sharma", age: 34, complaint: "Chest pain with shortness of breath", priority: "critical", eta: "08 mins" },
-  { id: "PT-2018", name: "Meera Nair", age: 47, complaint: "Hypertension follow-up", priority: "review", eta: "14 mins" },
-  { id: "PT-3321", name: "Rohit Verma", age: 62, complaint: "Post-op wound review", priority: "routine", eta: "22 mins" },
-  { id: "PT-4412", name: "Sonia Patel", age: 29, complaint: "Migraine and nausea", priority: "review", eta: "31 mins" },
-];
-
-export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [], onOpenSummary, onRestart, onBack }) {
+export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [], onOpenSummary, onRestart, onBack, authToken, onAuthenticated }) {
   const [role, setRole] = useState("doctor");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [queue, setQueue] = useState(defaultQueue);
-  const [selectedId, setSelectedId] = useState(defaultQueue[0].id);
+  const [queue, setQueue] = useState([]);
+  const [selectedId, setSelectedId] = useState(sessionId || null);
+  const [queueLoading, setQueueLoading] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
   const [userId, setUserId] = useState("dr.mehta");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setQueueLoading(true);
+    api.queue("dashboard", "physician", authToken)
+      .then((result) => {
+        if (!active) return;
+        const patients = result.patients || [];
+        setQueue(patients);
+        setSelectedId((current) => (patients.some((patient) => patient.id === current) ? current : patients[0]?.id || null));
+      })
+      .catch(() => {
+        if (active) setQueue([]);
+      })
+      .finally(() => {
+        if (active) setQueueLoading(false);
+      });
+    return () => { active = false; };
+  }, [sessionId, authToken]);
 
   const alerts = Math.max(redFlags.length, queue.filter((p) => p.priority === "critical").length);
   const docs = summary?.prior_investigations?.length || 0;
   const chiefComplaint = summary?.chief_complaint || "Not captured yet";
   const hpiPreview = summary?.hpi || "No history recorded yet.";
-  const selectedPatient = queue.find((patient) => patient.id === selectedId) || queue[0];
+  const selectedPatient = queue.find((patient) => patient.id === selectedId) || queue[0] || null;
   const currentPatientName = summary?.patient_name || selectedPatient?.name || "Current Patient";
 
   const triageCards = useMemo(
@@ -42,6 +56,8 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
   });
 
   const updatePatientPriority = (patientId, nextPriority) => {
+    if (!authToken) return;
+    api.updateQueuePriority(patientId, nextPriority, authToken).catch(() => undefined);
     setQueue((current) =>
       current.map((patient) =>
         patient.id === patientId
@@ -55,11 +71,17 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
     );
   };
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
     if (!userId.trim() || !password.trim()) return;
-    setRole("doctor");
-    setLoginOpen(false);
+    try {
+      const result = await api.physicianLogin(userId.trim(), password);
+      onAuthenticated?.(result.access_token);
+      setRole("doctor");
+      setLoginOpen(false);
+    } catch {
+      setPassword("");
+    }
   };
 
   return (
@@ -197,7 +219,9 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
           </div>
 
           <div className="space-y-3">
-            {filteredPatients.map((patient) => (
+            {queueLoading && <div className="py-8 text-center text-sm text-slate-500">Loading patient queue...</div>}
+            {!queueLoading && filteredPatients.length === 0 && <div className="py-8 text-center text-sm text-slate-500">No consented patient records in the queue.</div>}
+            {!queueLoading && filteredPatients.map((patient) => (
               <button
                 key={patient.id}
                 type="button"
@@ -210,7 +234,7 @@ export default function DoctorDashboard({ lang, sessionId, summary, redFlags = [
                       <span className="text-base font-bold text-slate-900">{patient.name}</span>
                       <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{patient.id}</span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-600">{patient.age} yrs · {patient.complaint}</div>
+                    <div className="mt-1 text-xs text-slate-600">{patient.age ? `${patient.age} yrs · ` : ""}{patient.complaint}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span

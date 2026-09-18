@@ -77,3 +77,20 @@ class PermissionsRequest(BaseModel):
     hospital_records: bool = True      # store in this facility's record
     abdm_share: bool = False           # share to ABDM / other providers
     research_anonymised: bool = False  # anonymised secondary use
+
+
+class RouteRequest(BaseModel):
+    targets: list[Literal["his", "abdm"]] = ["his"]
+
+
+class PhysicianLoginRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+
+class PhysicianEditRequest(BaseModel):
+    hpi: str = Field(min_length=1, max_length=20000)
+
+
+class PriorityRequest(BaseModel):
+    priority: Literal["critical", "review", "routine"]

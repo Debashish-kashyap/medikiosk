@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
+from ..config import settings
 from ..core import abha_service, dialogue_engine, fhir_builder, identity_service, summary_builder
-from ..models.schemas import ConsentRequest, CreateSessionRequest
+from ..models.schemas import ConsentRequest, CreateSessionRequest, RouteRequest
 from ..store import audit_log, session_store
 
 router = APIRouter(prefix="/api/session", tags=["session"])
@@ -87,25 +88,53 @@ def submit(session_id: str, clear: bool = Query(False, description="Delete sessi
     summary = summary_builder.build_summary(session)
     abha = (abha_service.get_abha_link(session_id) or {}).get("abha_id")
     bundle = fhir_builder.build_bundle(session, summary, abha_id=abha)
-    pushed = False
-    if (session.get("permissions") or {}).get("abdm_share"):
-        try:
-            pushed = fhir_builder.push_to_abdm_sandbox(bundle)
-        except RuntimeError:
-            audit_log.record(session_id, actor="system", role="system", action="FHIR_EXPORT", resource="fhir_bundle", success=False, purpose="abdm_share")
-            raise HTTPException(status_code=502, detail="ABDM sandbox export is temporarily unavailable.")
+    routing = _route_bundle(session_id, session, bundle, ["his", "abdm"])
     audit_log.record(session_id, actor="clinician", role="physician", action="FHIR_EXPORT", resource="fhir_bundle", success=True, purpose="care")
 
     result = {
         "session_id": session_id,
         "summary": summary,
         "fhir_bundle": bundle,
-        "pushed_to_abdm": pushed,
-        "note": "FHIR bundle generated. ABDM sandbox export occurs only after explicit sharing consent and sandbox configuration.",
+        "pushed_to_abdm": routing["abdm"]["pushed"],
+        "routing": routing,
+        "note": "FHIR bundle generated. External delivery is reported per configured destination and sharing permission.",
         "cleared": False,
     }
     if clear:
         audit_log.record(session_id, actor="system", action="erase", resource="session", purpose="rights")
         session_store.delete_session(session_id)   # temporary data cleared after submit
         result["cleared"] = True
+    return result
+
+
+@router.post("/{session_id}/route")
+def route_record(session_id: str, body: RouteRequest) -> dict:
+    """Generate and deliver the patient summary to selected configured systems."""
+    session = _require(session_id)
+    if not session.get("consent", {}).get("given"):
+        raise HTTPException(status_code=403, detail="Consent is required before routing a patient record.")
+    summary = summary_builder.build_summary(session)
+    abha = (abha_service.get_abha_link(session_id) or {}).get("abha_id")
+    bundle = fhir_builder.build_bundle(session, summary, abha_id=abha)
+    routing = _route_bundle(session_id, session, bundle, body.targets)
+    return {"session_id": session_id, "routing": routing, "fhir_bundle": bundle}
+
+
+def _route_bundle(session_id: str, session: dict, bundle: dict, targets: list[str]) -> dict:
+    permissions = session.get("permissions") or {}
+    result = {}
+    for target in ("his", "abdm"):
+        if target not in targets:
+            continue
+        allowed = permissions.get("hospital_records", True) if target == "his" else permissions.get("abdm_share", False)
+        if not allowed:
+            result[target] = {"configured": False, "pushed": False, "status": "permission_required"}
+            continue
+        try:
+            pushed = fhir_builder.push_to_his(bundle) if target == "his" else fhir_builder.push_to_abdm_sandbox(bundle)
+            configured = bool(settings.HIS_FHIR_URL) if target == "his" else bool(settings.ABDM_SANDBOX_FHIR_URL and settings.ABHA_MODE == "sandbox")
+            result[target] = {"configured": configured, "pushed": pushed, "status": "delivered" if pushed else "not_configured"}
+        except RuntimeError as exc:
+            audit_log.record(session_id, actor="system", role="system", action="FHIR_EXPORT", resource=target, success=False, purpose=f"{target}_share")
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
     return result

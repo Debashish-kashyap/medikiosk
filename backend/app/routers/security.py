@@ -1,11 +1,15 @@
 """Protected record, ABHA mock, and administrative audit APIs."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from ..core import abha_service, fhir_builder, summary_builder
+from ..models.schemas import PhysicianEditRequest, PhysicianLoginRequest, PriorityRequest
 from ..security.audit import record_event
+from ..security.physician_auth import authenticate
 from ..security.rbac import actor_from_headers, has_permission, require_permission
 from ..store import audit_log, session_store
 
@@ -20,6 +24,14 @@ class AbhaLinkRequest(BaseModel):
 
 class RecordRequest(BaseModel):
     patient_id: str = Field(min_length=1)
+
+
+@router.post("/auth/physician")
+def physician_login(body: PhysicianLoginRequest) -> dict:
+    token = authenticate(body.user_id, body.password)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid physician credentials.")
+    return {"access_token": token, "token_type": "bearer", "user_id": body.user_id, "role": "physician"}
 
 
 def _session(patient_id: str) -> dict:
@@ -84,3 +96,61 @@ def unlink_abha(patient_id: str, actor: dict[str, str] = Depends(actor_from_head
 def get_audit_logs(actor: dict[str, str] = Depends(require_permission("view_audit_logs"))) -> dict:
     entries = audit_log.all_logs()
     return {"count": len(entries), "entries": entries}
+
+@router.get("/queue")
+def physician_queue(actor: dict[str, str] = Depends(require_permission("view_patient_record"))) -> dict:
+    """Return the waiting list from persisted patient intake sessions."""
+    sessions = session_store.all_sessions().values()
+    patients = []
+    for session in sessions:
+        if not (session.get("consent") or {}).get("given"):
+            continue
+        summary = summary_builder.build_summary(session)
+        flags = session.get("red_flags") or []
+        priority = session.get("queue_priority") or ("critical" if any(flag.get("priority") == "HIGH" for flag in flags) else "review" if flags else "routine")
+        patients.append({
+            "id": session["id"],
+            "name": summary.get("patient_name") or f"Patient {session['id'][:8]}",
+            "age": summary.get("raw_fields", {}).get("age"),
+            "complaint": summary.get("chief_complaint", "Not captured"),
+            "priority": priority,
+            "eta": "Now" if priority == "critical" else "Queue",
+            "status": session.get("status"),
+            "created_at": session.get("created_at"),
+            "identity_type": (session.get("consent") or {}).get("identity_type"),
+            "review": session.get("physician_review") or {},
+        })
+    patients.sort(key=lambda patient: (0 if patient["priority"] == "critical" else 1, patient.get("created_at") or ""))
+    return {"count": len(patients), "patients": patients, "actor": actor["user_id"]}
+
+
+@router.patch("/queue/{patient_id}")
+def update_queue_priority(patient_id: str, body: PriorityRequest, actor: dict[str, str] = Depends(require_permission("update_record"))) -> dict:
+    session = _session(patient_id)
+    session["queue_priority"] = body.priority
+    session_store.save_session(session)
+    record_event(patient_id, user_id=actor["user_id"], role=actor["role"], action="UPDATE_TRIAGE_PRIORITY", resource_id=patient_id, success=True, request_id=actor["request_id"])
+    return {"patient_id": patient_id, "priority": body.priority}
+
+
+@router.patch("/records/{patient_id}/physician-review")
+def save_physician_review(patient_id: str, body: PhysicianEditRequest, actor: dict[str, str] = Depends(require_permission("update_record"))) -> dict:
+    session = _session(patient_id)
+    review = session.setdefault("physician_review", {})
+    review.update({"hpi": body.hpi, "edited_by": actor["user_id"], "edited_at": datetime.now(timezone.utc).isoformat()})
+    session_store.save_session(session)
+    record_event(patient_id, user_id=actor["user_id"], role=actor["role"], action="UPDATE_SUMMARY", resource_id="hpi", success=True, request_id=actor["request_id"])
+    return {"patient_id": patient_id, "physician_review": review}
+
+
+@router.post("/records/{patient_id}/sign-off")
+def sign_off_record(patient_id: str, actor: dict[str, str] = Depends(require_permission("update_record"))) -> dict:
+    session = _session(patient_id)
+    review = session.setdefault("physician_review", {})
+    if not review.get("hpi"):
+        review["hpi"] = summary_builder.build_summary(session)["hpi"]
+    review.update({"confirmed": True, "confirmed_by": actor["user_id"], "confirmed_at": datetime.now(timezone.utc).isoformat()})
+    session["status"] = "confirmed"
+    session_store.save_session(session)
+    record_event(patient_id, user_id=actor["user_id"], role=actor["role"], action="PHYSICIAN_SIGN_OFF", resource_id=patient_id, success=True, request_id=actor["request_id"])
+    return {"patient_id": patient_id, "status": session["status"], "physician_review": review}

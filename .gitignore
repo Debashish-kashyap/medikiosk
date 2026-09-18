@@ -20,6 +20,9 @@ dist/
 .idea/
 .vscode/
 
+# Runtime patient session database
+backend/data/*.db
+
 # Audio test clips
 *.wav
 *.webm

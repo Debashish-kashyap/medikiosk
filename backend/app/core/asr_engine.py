@@ -56,11 +56,19 @@ def whisper_available() -> bool:
 def active_engine() -> str:
     """Return the name of the engine that will actually be used."""
     mode = _ASR_MODE
+    if mode == "bhashini":
+        from . import bhashini_service
+        return "bhashini" if bhashini_service.configured() and _bhashini_ready() else "stub"
     if mode in {"stub", "off"}:
         return "stub"
     if mode in {"auto", "whisper"}:
         return "faster-whisper" if whisper_available() else "stub"
     return "stub"
+
+
+def _bhashini_ready() -> bool:
+    from ..config import settings
+    return bool(settings.BHASHINI_ASR_SERVICE_ID)
 
 
 def engine_status() -> dict:
@@ -220,6 +228,15 @@ def transcribe_audio(
     if not data:
         base_result["note"] = "empty audio payload"
         return base_result
+
+    if active_engine() == "bhashini":
+        from . import bhashini_service
+        try:
+            result = bhashini_service.transcribe(data, language, content_type)
+            if result:
+                return result
+        except Exception as exc:
+            logger.warning("Bhashini ASR failed; falling back to local ASR: %s", exc)
 
     if not whisper_available():
         base_result["engine"] = "stub"

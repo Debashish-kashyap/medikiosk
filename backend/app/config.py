@@ -38,6 +38,22 @@ class Settings:
     ABDM_SANDBOX_FHIR_URL = os.getenv("MEDIKIOSK_ABDM_SANDBOX_FHIR_URL", "")
     ABDM_CLIENT_ID = os.getenv("MEDIKIOSK_ABDM_CLIENT_ID", "")
     ABDM_CLIENT_SECRET = os.getenv("MEDIKIOSK_ABDM_CLIENT_SECRET", "")
+    # SQLite is the default durable store for the single-site deployment.
+    DATABASE_PATH = os.getenv(
+        "MEDIKIOSK_DATABASE_PATH",
+        str(Path(__file__).resolve().parent.parent / "data" / "medikiosk.db"),
+    )
+    # Optional HIS FHIR endpoint. The request is sent only when configured.
+    HIS_FHIR_URL = os.getenv("MEDIKIOSK_HIS_FHIR_URL", "")
+    HIS_CLIENT_ID = os.getenv("MEDIKIOSK_HIS_CLIENT_ID", "")
+    HIS_CLIENT_SECRET = os.getenv("MEDIKIOSK_HIS_CLIENT_SECRET", "")
+    # Bhashini credentials are backend-only; never expose them through Vite.
+    BHASHINI_USER_ID = os.getenv("BHASHINI_USER_ID", "")
+    BHASHINI_API_KEY = os.getenv("BHASHINI_API_KEY", "")
+    BHASHINI_INFERENCE_KEY = os.getenv("BHASHINI_INFERENCE_KEY", "")
+    BHASHINI_ASR_SERVICE_ID = os.getenv("BHASHINI_ASR_SERVICE_ID", "")
+    BHASHINI_TTS_SERVICE_ID = os.getenv("BHASHINI_TTS_SERVICE_ID", "")
+    BHASHINI_TTS_GENDER = os.getenv("BHASHINI_TTS_GENDER", "female")
 
 
 settings = Settings()

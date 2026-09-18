@@ -68,7 +68,31 @@ code changes, so use the local flow above while building.
    appears with an out-of-range value flagged.
 6. Edit the HPI line, then **Finish & generate record** → a valid **FHIR bundle** prints.
 
----
+Step 4 routing persists sessions in SQLite at `backend/data/medikiosk.db`. The
+`POST /api/session/{id}/route` endpoint delivers FHIR to the configured HIS endpoint
+when `MEDIKIOSK_HIS_FHIR_URL` is set. ABDM delivery remains consent-gated by the
+`abdm_share` permission and requires the configured ABDM sandbox credentials. The
+physician queue is available at `GET /api/queue` for an authenticated physician.
+Step 5 consult actions use the physician authentication endpoint
+`POST /api/auth/physician`. For local demo use, the default credentials are
+`dr.mehta` / `medikiosk-demo`; set `MEDIKIOSK_PHYSICIAN_USER`,
+`MEDIKIOSK_PHYSICIAN_PASSWORD`, and `MEDIKIOSK_AUTH_SECRET` before deployment.
+Physician HPI edits are saved at `PATCH /api/records/{id}/physician-review`, sign-off
+is recorded at `POST /api/records/{id}/sign-off`, and triage priority updates are
+persisted through `PATCH /api/queue/{id}`.
+
+The kiosk is offline-first for intake mutations and document uploads. It uses the
+browser IndexedDB database `medikiosk-offline` to queue consent/answers and uploaded
+document blobs, shows pending-sync status, and replays them in order after the browser
+reports connectivity. A first-time offline patient cannot create a server session until
+the API is reachable; previously created sessions can continue queuing work offline.
+
+Bhashini ASR/TTS credentials are loaded only by the backend from `.env`. Set
+`MEDIKIOSK_ASR=bhashini`, `BHASHINI_ASR_SERVICE_ID`, and `BHASHINI_TTS_SERVICE_ID`
+after selecting the service IDs from the Bhashini pipeline configuration. The API
+reports readiness at `GET /api/asr/status`; until service IDs are supplied, local
+Whisper/browser TTS remains the fallback.
+
 
 ## Repo structure
 ```
@@ -89,7 +113,7 @@ medikiosk/
 │   │   │   └── fhir_builder.py           # Module D (FHIR R4)
 │   │   ├── routers/             # session, dialogue, asr, documents, summary
 │   │   ├── models/schemas.py    # API contract
-│   │   └── store/session_store.py        # in-memory now; swap for Redis+TTL
+│   │   └── store/session_store.py        # SQLite-backed durable session store
 │   └── tests/test_dialogue.py
 └── frontend/                    # React (Vite) touch kiosk
     └── src/
